@@ -1,0 +1,12 @@
+# Docker部署忽略
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+carbon.db
+*.backup
+uploads/
+.venv/
+venv/
+.git/
