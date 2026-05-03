@@ -288,7 +288,7 @@ import { Guide, DataAnalysis, Warning } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 
-const API = 'http://127.0.0.1:8000/api/v1'
+const API = 'https://ai-carbon-system.onrender.com/api/v1'
 
 // State
 const activeTab = ref('template')

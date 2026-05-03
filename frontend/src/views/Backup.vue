@@ -183,7 +183,7 @@ import { authFetch } from '../utils/auth'
 import { Document, Folder, Timer, Plus, Download, Upload } from '@element-plus/icons-vue'
 import { Collection as Database } from '@element-plus/icons-vue'
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1/backup'
+const API_BASE = 'https://ai-carbon-system.onrender.com/api/v1/backup'
 
 const activeTab = ref('backups')
 const loading = ref(false)

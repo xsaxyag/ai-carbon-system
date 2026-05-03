@@ -254,7 +254,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { authFetch } from '../utils/auth'
 import { Box, DataAnalysis, TrendCharts, Warning, Plus } from '@element-plus/icons-vue'
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1/footprint'
+const API_BASE = 'https://ai-carbon-system.onrender.com/api/v1/footprint'
 
 const activeTab = ref('products')
 const loading = ref(false)
