@@ -43,13 +43,14 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫 - 未登录跳转登录页
+// 路由守卫 - 已禁用登录验证，直接放行
 router.beforeEach((to, from, next) => {
-  if (to.meta.public || isAuthenticated()) {
-    next()
-  } else {
-    next('/login')
+  // 自动设置模拟登录状态（免登录）
+  if (!localStorage.getItem('token')) {
+    localStorage.setItem('token', 'demo-token')
+    localStorage.setItem('user', JSON.stringify({ username: 'admin', role: 'admin' }))
   }
+  next()
 })
 
 // 创建应用
