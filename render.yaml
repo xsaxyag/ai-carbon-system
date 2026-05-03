@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ai-carbon-backend
+    runtime: docker
+    repo: https://github.com/xsaxyag/ai-carbon-system
+    region: singapore
+    plan: free
+    branch: main
+    rootDir: backend
+    dockerContext: backend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: DATABASE_PATH
+        value: /app/carbon.db
