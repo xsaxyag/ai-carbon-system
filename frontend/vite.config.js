@@ -20,5 +20,17 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'element-plus': ['element-plus'],
+          'echarts': ['echarts'],
+          'vue-vendor': ['vue', 'vue-router']
+        }
+      }
+    }
   }
 })
