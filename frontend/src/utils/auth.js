@@ -2,7 +2,7 @@
  * AI碳枢算 - 前端认证工具
  */
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1'
+const API_BASE = 'https://ai-carbon-backend.onrender.com/api/v1'
 
 export function getToken() {
   return localStorage.getItem('token')
