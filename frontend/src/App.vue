@@ -13,55 +13,55 @@
         text-color="#fff"
         active-text-color="#409eff"
       >
-        <el-menu-item index="/">
+        <el-menu-item index="/ai-carbon-system/">
           <el-icon><DataBoard /></el-icon>
           <span>Dashboard</span>
         </el-menu-item>
-        <el-menu-item index="/carbon">
+        <el-menu-item index="/ai-carbon-system/carbon">
           <el-icon><Coin /></el-icon>
           <span>碳数据录入</span>
         </el-menu-item>
-        <el-menu-item index="/ocr">
+        <el-menu-item index="/ai-carbon-system/ocr">
           <el-icon><Camera /></el-icon>
           <span>OCR识别</span>
         </el-menu-item>
-        <el-menu-item index="/company">
+        <el-menu-item index="/ai-carbon-system/company">
           <el-icon><OfficeBuilding /></el-icon>
           <span>企业管理</span>
         </el-menu-item>
-        <el-menu-item index="/report">
+        <el-menu-item index="/ai-carbon-system/report">
           <el-icon><Document /></el-icon>
           <span>碳排报告</span>
         </el-menu-item>
-        <el-menu-item index="/compare">
+        <el-menu-item index="/ai-carbon-system/compare">
           <el-icon><Scale /></el-icon>
           <span>企业对比</span>
         </el-menu-item>
-        <el-menu-item index="/price-alert">
+        <el-menu-item index="/ai-carbon-system/price-alert">
           <el-icon><Bell /></el-icon>
           <span>碳价预警</span>
         </el-menu-item>
-        <el-menu-item index="/optimization">
+        <el-menu-item index="/ai-carbon-system/optimization">
           <el-icon><TrendCharts /></el-icon>
           <span>降碳优化</span>
         </el-menu-item>
-        <el-menu-item index="/carbon-asset">
+        <el-menu-item index="/ai-carbon-system/carbon-asset">
           <el-icon><Wallet /></el-icon>
           <span>碳资产</span>
         </el-menu-item>
-        <el-menu-item index="/carbon-trace">
+        <el-menu-item index="/ai-carbon-system/carbon-trace">
           <el-icon><Box /></el-icon>
           <span>碳足迹</span>
         </el-menu-item>
-        <el-menu-item index="/wizard">
+        <el-menu-item index="/ai-carbon-system/wizard">
           <el-icon><Guide /></el-icon>
           <span>智能填报</span>
         </el-menu-item>
-        <el-menu-item index="/backup">
+        <el-menu-item index="/ai-carbon-system/backup">
           <el-icon><FolderOpened /></el-icon>
           <span>数据备份</span>
         </el-menu-item>
-        <el-menu-item index="/ai-advisor">
+        <el-menu-item index="/ai-carbon-system/ai-advisor">
           <el-icon><ChatDotRound /></el-icon>
           <span>AI顾问</span>
         </el-menu-item>
