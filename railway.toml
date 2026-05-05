@@ -1,0 +1,14 @@
+[railway]
+  builder = "nixpacks"
+  wakeCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+[deploy]
+  rootDir = "backend"
+  numReplicas = 1
+  sleepApplication = false
+
+[deploy.healthCheckPath]
+  path = "/api/v1/companies"
+  intervalSeconds = 30
+  timeoutSeconds = 10
+  failureThreshold = 3
