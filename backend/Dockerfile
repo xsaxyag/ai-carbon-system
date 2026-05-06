@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com
 COPY . .
 
 # 创建必要目录
-RUN mkdir -p uploads
+RUN mkdir -p uploads data
 
 # Railway 使用 PORT 环境变量，默认 8000
 ENV PORT=8000
