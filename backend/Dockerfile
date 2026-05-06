@@ -18,8 +18,6 @@ COPY . .
 # 创建必要目录
 RUN mkdir -p uploads data
 
-# Railway 使用 PORT 环境变量，默认 8000
-ENV PORT=8000
-EXPOSE 8000
-
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Railway 使用 PORT 环境变量（Railway 自动设置）
+# 不要设置默认值，让 Railway 自己决定端口
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
