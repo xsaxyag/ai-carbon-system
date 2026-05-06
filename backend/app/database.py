@@ -5,7 +5,12 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path(__file__).resolve().parent.parent / "carbon.db"
+# Railway 使用 /app 目录，本地开发使用项目目录
+import os
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    DB_PATH = Path("/app/data/carbon.db")
+else:
+    DB_PATH = Path(__file__).resolve().parent.parent / "carbon.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 def init_db():
