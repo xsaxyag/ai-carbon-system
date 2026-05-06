@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 安装系统依赖（OCR相关）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -18,6 +18,8 @@ COPY . .
 # 创建必要目录
 RUN mkdir -p uploads
 
+# Railway 使用 PORT 环境变量，默认 8000
+ENV PORT=8000
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
