@@ -1,8 +1,0 @@
-[railway]
-  builder = "dockerfile"
-
-[deploy]
-  rootDir = "backend"
-  numReplicas = 1
-  sleepApplication = false
-  healthCheckPath = "/api/v1/companies"
