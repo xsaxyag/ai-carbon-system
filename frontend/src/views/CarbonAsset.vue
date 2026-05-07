@@ -221,6 +221,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Coin, TrendCharts, DataAnalysis, Money } from '@element-plus/icons-vue'
+import { API_BASE } from '../utils/auth'
 
 const activeTab = ref('quota')
 const companyId = ref(1)
@@ -267,7 +268,7 @@ onMounted(() => {
 async function loadSummary() {
   try {
     const year = new Date().getFullYear()
-    const res = await fetch(`/api/v1/carbon-asset/summary/${companyId.value}/${year}`)
+    const res = await fetch(`${API_BASE}/carbon-asset/summary/${companyId.value}/${year}`)
     const data = await res.json()
     Object.assign(summary, data)
   } catch (e) {
@@ -277,7 +278,7 @@ async function loadSummary() {
 
 async function loadQuotas() {
   try {
-    const res = await fetch(`/api/v1/carbon-asset/quota/${companyId.value}`)
+    const res = await fetch(`${API_BASE}/carbon-asset/quota/${companyId.value}`)
     quotas.value = await res.json()
   } catch (e) {
     console.error('加载配额失败', e)
@@ -286,7 +287,7 @@ async function loadQuotas() {
 
 async function loadTrades() {
   try {
-    const res = await fetch(`/api/v1/carbon-asset/trades/${companyId.value}`)
+    const res = await fetch(`${API_BASE}/carbon-asset/trades/${companyId.value}`)
     trades.value = await res.json()
   } catch (e) {
     console.error('加载交易记录失败', e)
@@ -295,7 +296,7 @@ async function loadTrades() {
 
 async function loadMarketPrice() {
   try {
-    const res = await fetch('/api/v1/carbon-asset/market-price')
+    const res = await fetch(`${API_BASE}/carbon-asset/market-price`)
     marketPrice.value = await res.json()
   } catch (e) {
     console.error('加载碳价失败', e)
@@ -312,7 +313,7 @@ function showAddTradeDialog() {
 
 async function submitQuota() {
   try {
-    const res = await fetch('/api/v1/carbon-asset/quota', {
+    const res = await fetch(`${API_BASE}/carbon-asset/quota`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -333,7 +334,7 @@ async function submitQuota() {
 
 async function submitTrade() {
   try {
-    const res = await fetch('/api/v1/carbon-asset/trade', {
+    const res = await fetch(`${API_BASE}/carbon-asset/trade`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

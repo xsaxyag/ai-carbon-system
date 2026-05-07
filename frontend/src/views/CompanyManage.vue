@@ -73,6 +73,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { API_BASE } from '../utils/auth'
 
 const companies = ref([])
 const loading = ref(false)
@@ -107,7 +108,7 @@ onMounted(() => {
 async function loadCompanies() {
   loading.value = true
   try {
-    const res = await fetch('/api/v1/carbon/company/')
+    const res = await fetch(`${API_BASE}/carbon/company/`)
     companies.value = await res.json()
     total.value = companies.value.length
   } catch (e) {
@@ -136,7 +137,7 @@ async function submitForm() {
     
     saving.value = true
     try {
-      const url = isEdit.value ? `/api/v1/carbon/company/${editingId.value}/` : '/api/v1/carbon/company/'
+      const url = isEdit.value ? `${API_BASE}/carbon/company/${editingId.value}/` : `${API_BASE}/carbon/company/`
       const method = isEdit.value ? 'PUT' : 'POST'
       
       await fetch(url, {
@@ -160,7 +161,7 @@ async function deleteCompany(id) {
     await ElMessageBox.confirm('确定要删除该企业吗?', '提示', {
       type: 'warning'
     })
-    await fetch(`/api/v1/carbon/company/${id}/`, { method: 'DELETE' })
+    await fetch(`${API_BASE}/carbon/company/${id}/`, { method: 'DELETE' })
     ElMessage.success('删除成功')
     loadCompanies()
   } catch (e) {

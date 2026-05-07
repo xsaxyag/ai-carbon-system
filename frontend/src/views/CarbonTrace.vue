@@ -251,10 +251,10 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { authFetch } from '../utils/auth'
+import { authFetch, API_BASE as AUTH_BASE } from '../utils/auth'
 import { Box, DataAnalysis, TrendCharts, Warning, Plus } from '@element-plus/icons-vue'
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1/footprint'
+const API_BASE = AUTH_BASE + '/footprint'
 
 const activeTab = ref('products')
 const loading = ref(false)

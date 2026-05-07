@@ -148,6 +148,7 @@
 import { ref, onMounted, reactive, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { CircleCheckFilled } from '@element-plus/icons-vue'
+import { API_BASE } from '../utils/auth'
 
 const stats = reactive({ companies: 0, records: 0, totalEmission: 0, reduction: 0 })
 const recentRecords = ref([])
@@ -172,8 +173,8 @@ onMounted(async () => {
   let companies = [], records = []
   try {
     const [compRes, recordRes] = await Promise.all([
-      fetch('/api/v1/carbon/company/'),
-      fetch('/api/v1/carbon/records/')
+      fetch(`${API_BASE}/carbon/company/`),
+      fetch(`${API_BASE}/carbon/records/`)
     ])
     companies = await compRes.json()
     records = await recordRes.json()
@@ -203,7 +204,7 @@ onMounted(async () => {
 
 async function loadAlerts() {
   try {
-    const res = await fetch('/api/v1/alert/check/1/')
+    const res = await fetch(`${API_BASE}/alert/check/1/`)
     const data = await res.json()
     Object.assign(alertData, data)
   } catch (e) {

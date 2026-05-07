@@ -137,6 +137,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import { API_BASE } from '../utils/auth'
 
 const loading = ref(false)
 const companies = ref([])
@@ -171,7 +172,7 @@ onMounted(() => { loadCompanies() })
 
 async function loadCompanies() {
   try {
-    const res = await fetch('/api/v1/carbon/company/')
+    const res = await fetch(`${API_BASE}/carbon/company/`)
     companies.value = await res.json()
     if (companies.value.length > 0 && !selectedCompany.value) {
       selectedCompany.value = companies.value[0].id

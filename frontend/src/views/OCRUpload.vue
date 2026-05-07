@@ -118,6 +118,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { API_BASE } from '../utils/auth'
 
 const router = useRouter()
 
@@ -146,7 +147,7 @@ const uploadFile = async (file) => {
   formData.append('file', file)
   
   try {
-    const response = await fetch('/api/v1/ocr/recognize', {
+    const response = await fetch(`${API_BASE}/ocr/recognize`, {
       method: 'POST',
       body: formData
     })
@@ -172,7 +173,7 @@ const createCarbonRecord = async () => {
     // 将发票金额映射为电力消耗（假设发票为电费）
     // 电价约0.6-0.8元/kWh，这里用0.685估算
     const electricityKwh = Math.round(amount / 0.685)
-    const res = await fetch('/api/v1/carbon/records/', {
+    const res = await fetch(`${API_BASE}/carbon/records/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -145,6 +145,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Top, Bottom, Minus, WarningFilled, InfoFilled, CircleCheckFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { API_BASE } from '../utils/auth'
 
 const loading = ref(false)
 const priceData = ref({})
@@ -187,7 +188,7 @@ onMounted(() => {
 
 async function loadPrice() {
   try {
-    const res = await fetch('/api/v1/price-alert/price')
+    const res = await fetch(`${API_BASE}/price-alert/price`)
     priceData.value = await res.json()
     loadHistory()
   } catch (e) {
@@ -205,7 +206,7 @@ async function refreshPrice() {
 
 async function loadHistory() {
   try {
-    const res = await fetch('/api/v1/price-alert/price/history?days=30')
+    const res = await fetch(`${API_BASE}/price-alert/price/history?days=30`)
     const data = await res.json()
     priceHistory.value = data.history || []
     await nextTick()
@@ -215,7 +216,7 @@ async function loadHistory() {
 
 async function loadAlerts() {
   try {
-    const res = await fetch('/api/v1/price-alert/alerts')
+    const res = await fetch(`${API_BASE}/price-alert/alerts`)
     const data = await res.json()
     alerts.value = data.alerts || []
     alertSummary.value = data
@@ -227,7 +228,7 @@ async function loadAlerts() {
 
 async function loadCompanies() {
   try {
-    const res = await fetch('/api/v1/carbon/company/')
+    const res = await fetch(`${API_BASE}/carbon/company/`)
     companies.value = await res.json()
     if (companies.value.length > 0) {
       selectedCompanyId.value = companies.value[0].id
@@ -239,7 +240,7 @@ async function loadCompanies() {
 async function loadCompanyAlerts() {
   if (!selectedCompanyId.value) return
   try {
-    const res = await fetch(`/api/v1/price-alert/alerts/company/${selectedCompanyId.value}`)
+    const res = await fetch(`${API_BASE}/price-alert/alerts/company/${selectedCompanyId.value}`)
     const data = await res.json()
     companyAlerts.value = data.quota_alerts || []
   } catch (e) {}

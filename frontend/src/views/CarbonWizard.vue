@@ -287,8 +287,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { Guide, DataAnalysis, Warning } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
-
-const API = 'http://127.0.0.1:8000/api/v1'
+import { API_BASE as API } from '../utils/auth'
 
 // State
 const activeTab = ref('template')

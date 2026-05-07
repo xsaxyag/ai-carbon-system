@@ -94,8 +94,9 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { API_BASE as AUTH_BASE } from '../utils/auth'
 
-const API_BASE = '/api/v1/ai-advisor'
+const API_BASE = AUTH_BASE + '/ai-advisor'
 
 const messagesEl = ref(null)
 const messages = ref([])

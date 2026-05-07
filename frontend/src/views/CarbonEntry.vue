@@ -204,9 +204,9 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
-import { authFetch } from '../utils/auth'
+import { authFetch, API_BASE } from '../utils/auth'
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1'
+// API_BASE 已从 auth.js 导入
 
 const router = useRouter()
 const formRef = ref(null)

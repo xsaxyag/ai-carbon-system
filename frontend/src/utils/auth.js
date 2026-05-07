@@ -2,7 +2,11 @@
  * AI碳枢算 - 前端认证工具
  */
 
-const API_BASE = 'https://ai-carbon-backend.onrender.com/api/v1'
+// Railway 后端地址
+const API_BASE = 'https://ai-carbon-backend-production-472f.up.railway.app/api/v1'
+
+// 导出 API_BASE 供其他组件使用
+export { API_BASE }
 
 export function getToken() {
   return localStorage.getItem('token')
@@ -48,7 +52,7 @@ export async function authFetch(url, options = {}) {
   // 401自动跳转登录
   if (response.status === 401) {
     clearAuth()
-    window.location.href = '/login'
+    window.location.href = '/ai-carbon-system/login'
     throw new Error('认证已过期，请重新登录')
   }
 

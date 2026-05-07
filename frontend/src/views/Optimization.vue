@@ -169,6 +169,7 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts/core'
 import { PieChart, BarChart } from 'echarts/charts'
+import { API_BASE } from '../utils/auth'
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
@@ -196,7 +197,7 @@ onMounted(() => {
 
 async function loadMeasures() {
   try {
-    const res = await fetch(`/api/v1/optimization/measures/${selectedIndustry.value}`)
+    const res = await fetch(`${API_BASE}/optimization/measures/${selectedIndustry.value}`)
     measures.value = await res.json()
   } catch (e) {
     console.error('加载措施失败', e)
@@ -205,7 +206,7 @@ async function loadMeasures() {
 
 async function loadBenchmark() {
   try {
-    const res = await fetch(`/api/v1/optimization/benchmark/${selectedIndustry.value}`)
+    const res = await fetch(`${API_BASE}/optimization/benchmark/${selectedIndustry.value}`)
     benchmark.value = await res.json()
   } catch (e) {
     console.error('加载基准失败', e)
@@ -215,7 +216,7 @@ async function loadBenchmark() {
 async function runOptimization() {
   optimizing.value = true
   try {
-    const res = await fetch('/api/v1/optimization/optimize', {
+    const res = await fetch(`${API_BASE}/optimization/optimize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
