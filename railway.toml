@@ -1,0 +1,3 @@
+[railway]
+builder = "dockerfile"
+rootDir = "backend"

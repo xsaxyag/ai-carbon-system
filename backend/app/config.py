@@ -10,16 +10,22 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def _load_env():
-    """加载 .env 配置文件"""
+    """加载 .env 配置文件（key=value 格式）"""
     env_path = BASE_DIR / ".env"
+    data = {}
     if env_path.exists():
         try:
             with open(env_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, _, value = line.partition("=")
+                        data[key.strip()] = value.strip()
         except Exception:
             pass
-    return {}
+    return data
 
 _env = _load_env()
 
