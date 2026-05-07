@@ -19,5 +19,5 @@ COPY . .
 RUN mkdir -p uploads data
 
 # Railway 使用 PORT 环境变量（Railway 自动设置）
-# 不要设置默认值，让 Railway 自己决定端口
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+# 使用 shell 形式确保 $PORT 被正确解析
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
