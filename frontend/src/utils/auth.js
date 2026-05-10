@@ -5,7 +5,7 @@
 // 自动检测环境：生产环境用公网后端，开发环境用本地
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
 const API_BASE = isProduction
-  ? 'https://ai-carbon-system-backend.onrender.com/api/v1'  // Render 后端地址（部署后替换）
+  ? 'https://ai-carbon-system-backend.onrender.com/api/v1'
   : 'http://localhost:8000/api/v1'
 
 // 导出 API_BASE 供其他组件使用
