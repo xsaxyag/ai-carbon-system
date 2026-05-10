@@ -18,27 +18,39 @@ router = APIRouter()
 
 # ========== 企业管理 ==========
 
-@router.post("/company/", response_model=dict)
+@router.post("/company/")
 async def create_company(company: dict):
-    """创建企业"""
+    """创建企业 - 支持前端字段映射"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # 前端字段映射：size -> region, employees -> employee_count
+    name = company.get("name")
+    industry = company.get("industry", "未知")
+    region = company.get("region") or company.get("size", "默认")  # 优先用region，否则用size
+    employee_count = company.get("employee_count") or company.get("employees")
     
     cursor.execute("""
         INSERT INTO companies (name, industry, region, employee_count)
         VALUES (?, ?, ?, ?)
-    """, (
-        company.get("name"),
-        company.get("industry"),
-        company.get("region", "默认"),
-        company.get("employee_count")
-    ))
+    """, (name, industry, region, employee_count))
     
     company_id = cursor.lastrowid
     conn.commit()
     conn.close()
     
-    return {"id": company_id, "status": "active", **company}
+    return {
+        "success": True,
+        "message": "企业创建成功",
+        "data": {
+            "id": company_id,
+            "name": name,
+            "industry": industry,
+            "region": region,
+            "employee_count": employee_count,
+            "status": "active"
+        }
+    }
 
 @router.get("/company/", response_model=List[dict])
 async def list_companies(skip: int = 0, limit: int = 100, status: Optional[str] = None):
@@ -110,7 +122,7 @@ async def delete_company(company_id: int):
 
 # ========== 碳数据管理 ==========
 
-@router.post("/records/", response_model=dict)
+@router.post("/records/")
 async def create_carbon_record(record: CarbonRecordCreate, skip_validation: bool = False):
     """创建碳排放记录（自动校验+计算）"""
     from app.services.validation_service import ValidationService
@@ -176,18 +188,22 @@ async def create_carbon_record(record: CarbonRecordCreate, skip_validation: bool
     conn.close()
     
     return {
-        "id": record_id,
-        **record.model_dump(),
-        "co2_emission": result["co2_emission"],
-        "emission_factor": result["emission_factor"],
-        "actual_quantity": actual_quantity,
-        "actual_unit": actual_unit,
-        "status": "created",
-        "validation": {
-            "passed": validation["passed"],
-            "warnings_count": len(validation["warnings"]),
-            "warnings": validation["warnings"],
-            "infos": validation["infos"],
+        "success": True,
+        "message": "碳排放记录已保存",
+        "data": {
+            "id": record_id,
+            **record.model_dump(),
+            "co2_emission": result["co2_emission"],
+            "emission_factor": result["emission_factor"],
+            "actual_quantity": actual_quantity,
+            "actual_unit": actual_unit,
+            "status": "created",
+            "validation": {
+                "passed": validation["passed"],
+                "warnings_count": len(validation["warnings"]),
+                "warnings": validation["warnings"],
+                "infos": validation["infos"],
+            }
         }
     }
 

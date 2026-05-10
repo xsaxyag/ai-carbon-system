@@ -16,6 +16,7 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 def init_db():
     """初始化数据库表"""
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA encoding = 'UTF-8'")
     cursor = conn.cursor()
     
     # 企业表
@@ -219,6 +220,7 @@ def init_db():
 def get_db_connection():
     """获取数据库连接"""
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA encoding = 'UTF-8'")
     conn.row_factory = sqlite3.Row
     return conn
 
