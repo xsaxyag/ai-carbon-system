@@ -13,8 +13,46 @@ else:
     DB_PATH = Path(__file__).resolve().parent.parent / "carbon.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+def _needs_db_reset():
+    """检测数据库是否需要重建（编码错误导致中文乱码）"""
+    if not DB_PATH.exists():
+        return False  # 数据库不存在，不需要重建
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        # 检查编码类型
+        cursor.execute("PRAGMA encoding")
+        enc = cursor.fetchone()[0]
+        cursor.execute("SELECT name FROM companies LIMIT 3")
+        rows = cursor.fetchall()
+        conn.close()
+        # 如果编码不是 UTF-8，或者有乱码数据，重建
+        if enc != 'UTF-8':
+            return True
+        # 检查是否全是问号（乱码特征）
+        for row in rows:
+            name = str(row[0])
+            if name.count('?') > 0 and len(name) < 10:  # 短名字全是问号 = 乱码
+                return True
+        return False
+    except Exception as e:
+        print(f"数据库检测异常: {e}，重建数据库...")
+        return True
+
+def _reset_database():
+    """删除旧数据库文件，下次 init_db 会创建新的正确编码数据库"""
+    import os
+    if DB_PATH.exists():
+        print(f"删除损坏的数据库: {DB_PATH}")
+        os.remove(DB_PATH)
+    print("将在下次启动时创建新的 UTF-8 编码数据库...")
+
 def init_db():
     """初始化数据库表"""
+    # 先检测是否需要重建
+    if _needs_db_reset():
+        _reset_database()
+    
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA encoding = 'UTF-8'")
     cursor = conn.cursor()
