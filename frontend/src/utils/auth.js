@@ -2,8 +2,8 @@
  * AI碳枢算 - 前端认证工具
  */
 
-// Railway 后端地址
-const API_BASE = 'https://ai-carbon-backend-production-472f.up.railway.app/api/v1'
+// 本地开发后端地址
+const API_BASE = 'http://localhost:8000/api/v1'
 
 // 导出 API_BASE 供其他组件使用
 export { API_BASE }
