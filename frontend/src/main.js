@@ -39,7 +39,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory('/ai-carbon-system/'),
+  history: createWebHashHistory('/ai-carbon-system/'),
   routes
 })
 
