@@ -55,7 +55,7 @@ export async function authFetch(url, options = {}) {
   // 401自动跳转登录
   if (response.status === 401) {
     clearAuth()
-    window.location.href = '/ai-carbon-system/login'
+    window.location.href = window.location.pathname + '#/login'
     throw new Error('认证已过期，请重新登录')
   }
 
