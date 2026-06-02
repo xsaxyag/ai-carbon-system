@@ -18,6 +18,11 @@ import CarbonWizard from './views/CarbonWizard.vue'
 import CompanyCompare from './views/CompanyCompare.vue'
 import PriceAlert from './views/PriceAlert.vue'
 import Login from './views/Login.vue'
+import Carbon3DDashboard from './views/Carbon3DDashboard.vue'
+import CarbonFootprint3D from './views/CarbonFootprint3D.vue'
+import DigitalTwinFactory from './views/DigitalTwinFactory.vue'
+import SupplyChainGraph from './views/SupplyChainGraph.vue'
+import EnergySynergy from './views/EnergySynergy.vue'
 import { isAuthenticated } from './utils/auth'
 
 // 路由配置
@@ -35,7 +40,12 @@ const routes = [
   { path: '/backup', name: 'Backup', component: Backup },
   { path: '/wizard', name: 'CarbonWizard', component: CarbonWizard },
   { path: '/compare', name: 'CompanyCompare', component: CompanyCompare },
-  { path: '/price-alert', name: 'PriceAlert', component: PriceAlert }
+  { path: '/price-alert', name: 'PriceAlert', component: PriceAlert },
+  { path: '/3d-dashboard', name: 'Carbon3DDashboard', component: Carbon3DDashboard },
+  { path: '/footprint-3d', name: 'CarbonFootprint3D', component: CarbonFootprint3D },
+  { path: '/digital-twin', name: 'DigitalTwinFactory', component: DigitalTwinFactory },
+  { path: '/supply-chain', name: 'SupplyChainGraph', component: SupplyChainGraph },
+  { path: '/energy-synergy', name: 'EnergySynergy', component: EnergySynergy }
 ]
 
 const router = createRouter({
