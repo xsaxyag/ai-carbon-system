@@ -7,5 +7,15 @@ services:
     envVars:
       - key: PORT
         value: 8000
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://ai.synnovator.com/v1
+      - key: LLM_MODEL
+        value: glm-5.1
+      - key: LLM_MAX_TOKENS
+        value: "2048"
+      - key: LLM_TEMPERATURE
+        value: "0.7"
     plan: free
     region: singapore
