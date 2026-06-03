@@ -245,11 +245,30 @@ onBeforeUnmount(() => {
 
 async function loadProductData(productId) {
   try {
-    // 实际项目中调用API
-    // const res = await fetch(`${API_BASE}/api/footprint/product/${productId}`)
-    // const data = await res.json()
+    // 调用真实API
+    const res = await fetch(`${API_BASE}/api/carbon-3d/lca-chain/${productId}`)
+    if (!res.ok) throw new Error(`API请求失败: ${res.status}`)
+    const apiData = await res.json()
 
-    const data = mockLCAData[productId] || mockLCAData[1]
+    // 数据格式转换 snake_case → camelCase
+    const data = {
+      total: apiData.total_footprint || 0,
+      stages: (apiData.chain_nodes || []).map(node => ({
+        id: node.id || 0,
+        label: node.name || 'Unknown',
+        value: node.emissions || 0,
+        percentage: node.percentage || 0,
+        trend: node.status === 'warning' ? 5.2 : (node.status === 'critical' ? 12.1 : -2.3),
+        isHigh: node.status === 'critical' || node.status === 'warning',
+        suggestions: node.detail ? [`优化建议: ${node.detail}`] : [],
+        children: []
+      }))
+    }
+
+    // 如果API无数据，使用mock兜底
+    if (!data.stages || data.stages.length === 0) {
+      data = mockLCAData[productId] || mockLCAData[1]
+    }
 
     // 构建树形数据
     const tree = data.stages.map(stage => ({
@@ -286,6 +305,36 @@ async function loadProductData(productId) {
     updateWaterfallChart(data)
   } catch (err) {
     error.value = '加载数据失败: ' + err.message
+    // 降级到mock数据
+    try {
+      const fallback = mockLCAData[productId] || mockLCAData[1]
+      // 使用fallback数据继续构建tree...
+      const tree = fallback.stages.map(stage => ({
+        id: stage.id,
+        label: stage.label,
+        value: stage.value,
+        percentage: stage.percentage,
+        trend: stage.trend,
+        isHigh: stage.isHigh,
+        suggestions: stage.suggestions,
+        children: stage.children.map(child => ({
+          id: child.id,
+          label: child.label,
+          value: child.value,
+          percentage: child.percentage,
+          trend: child.trend,
+          isHigh: child.isHigh
+        }))
+      }))
+      lcaTree.value = tree
+      if (tree.length > 0) selectedNode.value = { ...tree[0] }
+      if (threeSceneObj) updateThreeScene(tree)
+      updateWaterfallChart(fallback)
+    } catch (fallbackErr) {
+      console.error('Mock data fallback failed:', fallbackErr)
+    }
+  } finally {
+    loading.value = false
   }
 }
 

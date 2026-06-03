@@ -336,19 +336,64 @@ onBeforeUnmount(() => {
 
 async function fetchNetworkData() {
   try {
-    // 实际项目中调用API
-    // const [networkRes, suppliersRes] = await Promise.all([
-    //   fetch(`${API_BASE}/api/supplychain/network`),
-    //   fetch(`${API_BASE}/api/suppliers/list`)
-    // ])
-    // const network = await networkRes.json()
-    // const suppliers = await suppliersRes.json()
+    error.value = ''
+    loading.value = true
 
-    // 使用模拟数据
-    console.log('加载供应链网络数据...')
+    // 调用真实API
+    const [networkRes, suppliersRes] = await Promise.all([
+      fetch(`${API_BASE}/api/carbon-3d/supply-chain/network`),
+      fetch(`${API_BASE}/api/carbon-3d/supply-chain/suppliers`)
+    ])
+
+    if (!networkRes.ok) throw new Error(`供应链网络API请求失败: ${networkRes.status}`)
+    if (!suppliersRes.ok) throw new Error(`供应商列表API请求失败: ${suppliersRes.status}`)
+
+    const networkData = await networkRes.json()
+    const suppliersData = await suppliersRes.json()
+
+    // 更新供应链网络数据（映射到mockNetworkData格式）
+    window.__networkNodes = (networkData.nodes || []).map(n => ({
+      id: n.id || 0,
+      name: n.name || 'Unknown',
+      type: n.type || 'tier1',
+      emission: n.emission || 0,
+      carbonFootprint: n.carbon_footprint || 0,
+      riskLevel: n.risk_level || 'medium',
+      x: (n.x || 0) - 50,
+      y: (n.y || 0) - 10,
+      z: (n.z || 0) - 50
+    }))
+    window.__networkLinks = (networkData.links || []).map(l => ({
+      source: l.source || 0,
+      target: l.target || 0,
+      value: l.value || 0
+    }))
+
+    // 更新供应商列表
+    suppliers.value = (suppliersData.suppliers || []).map(s => ({
+      id: s.id || 0,
+      name: s.name || 'Unknown',
+      emission: s.emission || 0,
+      riskLevel: s.risk_level || 'medium'
+    }))
+
+    // 更新优化建议
+    recommendations.value = (networkData.recommendations || []).map((r, idx) => ({
+      priority: r.priority || idx + 1,
+      title: r.title || '优化方案',
+      description: r.description || '根据AI分析生成的优化建议',
+      reduction: r.reduction || 0,
+      cost: r.cost || 0,
+      payback: r.payback || 0
+    }))
+
+    console.log('[API] 供应链数据加载成功', { network: networkData, suppliers: suppliersData })
   } catch (err) {
     error.value = '数据加载失败: ' + err.message
-    throw err
+    console.warn('[API] 加载失败，使用mock数据兜底', err)
+    // 保持mock数据不变
+  } finally {
+    loading.value = false
   }
 }
 

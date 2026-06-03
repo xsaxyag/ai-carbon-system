@@ -267,21 +267,74 @@ onBeforeUnmount(() => {
 
 async function fetchEnergyData() {
   try {
-    // 实际项目中调用API
-    // const [overviewRes, predictionRes, storageRes] = await Promise.all([
-    //   fetch(`${API_BASE}/api/energy/overview`),
-    //   fetch(`${API_BASE}/api/energy/prediction`),
-    //   fetch(`${API_BASE}/api/energy/storage`)
-    // ])
-    // const overview = await overviewRes.json()
-    // const prediction = await predictionRes.json()
-    // const storage = await storageRes.json()
+    error.value = ''
+    loading.value = true
 
-    // 使用模拟数据
-    console.log('加载源网荷储数据...')
+    // 调用真实API
+    const [overviewRes, predictionRes, storageRes, suggestionsRes, realtimeRes] = await Promise.all([
+      fetch(`${API_BASE}/api/carbon-3d/overview`),
+      fetch(`${API_BASE}/api/carbon-3d/prediction?hours=24`),
+      fetch(`${API_BASE}/api/carbon-3d/storage/status`),
+      fetch(`${API_BASE}/api/carbon-3d/optimization-suggestions`),
+      fetch(`${API_BASE}/api/carbon-3d/energy-flow-realtime`)
+    ])
+
+    if (!overviewRes.ok) throw new Error(`能源概览API请求失败: ${overviewRes.status}`)
+
+    const overview = await overviewRes.json()
+    const prediction = predictionRes.ok ? await predictionRes.json() : null
+    const storage = storageRes.ok ? await storageRes.json() : null
+    const suggestions = suggestionsRes.ok ? await suggestionsRes.json() : { suggestions: [] }
+    const realtime = realtimeRes.ok ? await realtimeRes.json() : null
+
+    // 更新实时数据
+    const src = overview.source || {}
+    realtimeData.value = [
+      { label: '光伏出力', value: (src.solar_power || 2450).toFixed(0), unit: ' kW', color: '#00d4aa', icon: 'Sunny' },
+      { label: '风电出力', value: (src.wind_power || 1820).toFixed(0), unit: ' kW', color: '#1890ff', icon: 'WindPower' },
+      { label: '储能SOC', value: (storage?.batteries?.[0]?.soc || 78.5).toFixed(1), unit: '%', color: '#f39c12', icon: 'Battery' },
+      { label: '总负荷', value: (src.total_load || 3280).toFixed(0), unit: ' kW', color: '#ff4d4f', icon: 'Lightning' }
+    ]
+
+    // 更新源侧仪表盘
+    sourceMeters.value = [
+      { title: '光伏发电', value: src.solar_power || 2450, unit: 'kW', color: '#00d4aa', max: src.solar_capacity || 5000 },
+      { title: '风电发电', value: src.wind_power || 1820, unit: 'kW', color: '#1890ff', max: src.wind_capacity || 5000 },
+      { title: '总出力', value: (src.solar_power || 0) + (src.wind_power || 0), unit: 'kW', color: '#f39c12', max: (src.solar_capacity || 5000) + (src.wind_capacity || 5000) }
+    ]
+
+    // 更新储能SOC
+    const batteries = storage?.batteries || []
+    batterySOC.value = batteries.length > 0 ? batteries.map(b => ({
+      name: b.name || '储能',
+      soc: b.soc || 78,
+      power: b.power || 500,
+      capacity: b.capacity || 2000
+    })) : [
+      { name: '储能A', soc: 78, power: 500, capacity: 2000 },
+      { name: '储能B', soc: 65, power: 300, capacity: 1500 },
+      { name: '储能C', soc: 92, power: 800, capacity: 3000 }
+    ]
+
+    // 更新AI优化建议
+    aiSuggestions.value = (suggestions.suggestions || []).map(s => ({
+      title: s.title || '优化建议',
+      description: s.detail || s.description || '根据数据分析和AI算法生成的优化建议'
+    }))
+
+    // 存储API数据供图表使用
+    window.__energyOverview = overview
+    window.__energyPrediction = prediction
+    window.__energyStorage = storage
+    window.__energyRealtime = realtime
+
+    console.log('[API] 源网荷储数据加载成功', { overview, prediction, storage, suggestions, realtime })
   } catch (err) {
     error.value = '数据加载失败: ' + err.message
-    throw err
+    console.warn('[API] 加载失败，使用mock数据兜底', err)
+    // 保持mock数据不变（realtimeData、sourceMeters、batterySOC、aiSuggestions已有默认值）
+  } finally {
+    loading.value = false
   }
 }
 
