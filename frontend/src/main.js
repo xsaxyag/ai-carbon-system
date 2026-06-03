@@ -10,6 +10,7 @@ import OCRUpload from './views/OCRUpload.vue'
 import CompanyManage from './views/CompanyManage.vue'
 import CarbonReport from './views/CarbonReport.vue'
 import AIAdvisor from './views/AIAdvisor.vue'
+import AICarbonAdvisor from './views/AICarbonAdvisor.vue'
 import CarbonAsset from './views/CarbonAsset.vue'
 import Optimization from './views/Optimization.vue'
 import CarbonTrace from './views/CarbonTrace.vue'
@@ -29,6 +30,7 @@ const routes = [
   { path: '/company', name: 'CompanyManage', component: CompanyManage },
   { path: '/report', name: 'CarbonReport', component: CarbonReport },
   { path: '/ai-advisor', name: 'AIAdvisor', component: AIAdvisor },
+  { path: '/ai-carbon-advisor', name: 'AICarbonAdvisor', component: AICarbonAdvisor },
   { path: '/carbon-asset', name: 'CarbonAsset', component: CarbonAsset },
   { path: '/optimization', name: 'Optimization', component: Optimization },
   { path: '/carbon-trace', name: 'CarbonTrace', component: CarbonTrace },
