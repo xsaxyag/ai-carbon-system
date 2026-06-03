@@ -76,6 +76,13 @@ async def get_suppliers(page: int = Query(1, ge=1), page_size: int = Query(20, g
 @router.get("/supplier/{supplier_id}/detail")
 async def get_supplier_detail(supplier_id: str):
     """单个供应商详情"""
+    # 12个月排放趋势：模拟减排效果，逐月下降约2%
+    trend_12m = []
+    base = 400.0
+    for i in range(12):
+        month_factor = 1.0 - i * 0.02
+        trend_12m.append(round(base * month_factor * random.uniform(0.98, 1.02), 1))
+
     return {
         "id": supplier_id,
         "name": {"s1": "鑫达钢材集团", "s2": "华润塑料科技"}.get(supplier_id, "未知供应商"),
@@ -84,7 +91,7 @@ async def get_supplier_detail(supplier_id: str):
         "carbon_intensity": 2.10,
         "risk_level": "high",
         "certified": False,
-        "trend_12m": [round(random.uniform(200, 400), 1) for _ in range(12)],
+        "trend_12m": trend_12m,
         "reduction_suggestions": [
             {"step": "更换低碳钢材供应商", "from": "s1", "to": "s5", "potential_reduction": 120.5, "cost": 50000, "difficulty": "medium"},
             {"step": "优化运输路线", "from": "s1", "to": "core", "potential_reduction": 35.2, "cost": 10000, "difficulty": "easy"},
