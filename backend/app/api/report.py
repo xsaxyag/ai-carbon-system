@@ -5,9 +5,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from datetime import datetime
 from urllib.parse import quote
+from typing import Dict, Any, Optional, List
 from app.database import get_db_connection
 from app.services.pdf_report import generate_pdf_report
 from app.services.excel_export import generate_excel_report
+from app.services.iso_report_generator import iso_report_generator
 
 router = APIRouter()
 
@@ -279,3 +281,119 @@ async def export_excel_report(company_id: int, report_type: str = "monthly"):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Excel生成失败: {str(e)}")
+
+
+@router.get("/export-iso14064/{company_id}/")
+async def export_iso14064_report(company_id: int, report_period: str = "2025年度"):
+    """
+    导出ISO 14064-1标准组织碳盘查报告
+    
+    Args:
+        company_id: 企业ID
+        report_period: 报告周期（如：2025年度）
+    """
+    # 获取企业信息
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM companies WHERE id = ?", (company_id,))
+    company = cursor.fetchone()
+    if not company:
+        conn.close()
+        raise HTTPException(status_code=404, detail="企业不存在")
+    
+    # 获取排放数据
+    cursor.execute("""
+        SELECT scope, emission_source, quantity, unit, co2_emission, record_date
+        FROM carbon_records WHERE company_id = ?
+    """, (company_id,))
+    records = cursor.fetchall()
+    conn.close()
+    
+    # 计算排放数据
+    scope1 = sum(r["co2_emission"] for r in records if r["scope"] == "scope1")
+    scope2 = sum(r["co2_emission"] for r in records if r["scope"] == "scope2")
+    scope3 = sum(r["co2_emission"] for r in records if r["scope"] == "scope3")
+    total = scope1 + scope2 + scope3
+    
+    # 排放源分析
+    source_data = {}
+    for r in records:
+        src = r["emission_source"]
+        source_data[src] = source_data.get(src, 0) + r["co2_emission"]
+    
+    top_source = max(source_data.items(), key=lambda x: x[1]) if source_data else ("electricity", 0)
+    
+    emission_data = {
+        "total_emission": total / 1000,  # kg -> t
+        "scope1": scope1 / 1000,
+        "scope2": scope2 / 1000,
+        "scope3": scope3 / 1000,
+        "top_source": top_source[0],
+        "top_source_ratio": top_source[1] / max(total, 1) * 100,
+        "per_capita": total / max(company["employee_count"] or 1, 1) / 1000,
+        "per_revenue": total / 10000 / 1000  # 假设产值100万元
+    }
+    
+    try:
+        pdf_bytes = iso_report_generator.generate_iso14064_report(
+            company_data=dict(company),
+            emission_data=emission_data,
+            report_period=report_period
+        )
+        
+        company_name = company["name"]
+        filename_ascii = f"iso14064_report_{company_id}.pdf"
+        filename_utf8 = quote(f"{company_name}_ISO14064_组织碳盘查报告.pdf")
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{filename_ascii}\"; filename*=UTF-8''{filename_utf8}"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ISO报告生成失败: {str(e)}")
+
+
+@router.post("/export-iso14067/")
+async def export_iso14067_report(product_data: Dict[str, Any]):
+    """
+    导出ISO 14067产品碳足迹报告
+    
+    Args:
+        product_data: 产品信息（名称、功能单位、LCA数据等）
+    """
+    # 模拟LCA数据
+    lca_data = {
+        "functional_unit": product_data.get("functional_unit", "1件"),
+        "total_footprint": product_data.get("total_footprint", 125.8),
+        "reduction_potential": product_data.get("reduction_potential", 20),
+        "stages": [
+            {"id": "raw_material", "emission": 45.2, "activity": "原材料采购", "value": 100, "unit": "kg"},
+            {"id": "production", "emission": 52.8, "activity": "生产能耗", "value": 500, "unit": "kWh"},
+            {"id": "transport", "emission": 18.5, "activity": "运输", "value": 200, "unit": "km"},
+            {"id": "use", "emission": 6.3, "activity": "使用阶段", "value": 1000, "unit": "h"},
+            {"id": "disposal", "emission": 3.0, "activity": "废弃处置", "value": 1, "unit": "件"}
+        ]
+    }
+    
+    try:
+        pdf_bytes = iso_report_generator.generate_iso14067_report(
+            product_data=product_data,
+            lca_data=lca_data
+        )
+        
+        product_name = product_data.get("name", "unknown")
+        filename_ascii = f"iso14067_report_{product_name}.pdf"
+        filename_utf8 = quote(f"{product_name}_ISO14067_产品碳足迹报告.pdf")
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{filename_ascii}\"; filename*=UTF-8''{filename_utf8}"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ISO报告生成失败: {str(e)}")
