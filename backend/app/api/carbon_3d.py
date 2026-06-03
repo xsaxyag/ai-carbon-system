@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI碳枢算 V2.0 - 3D碳全景大屏数据API
 对标阳光电源iCarbon能碳平台 - 碳全景一屏总览
 """
@@ -13,15 +13,20 @@ router = APIRouter()
 @router.get("/dashboard")
 async def get_3d_dashboard():
     """3D碳全景大屏 - 全局数据"""
+    # 月度趋势：模拟减排效果，排放量逐月下降约2%
     monthly_trend = []
     now = datetime.now()
+    base_emission = 120.0  # 基准排放量（tCO2e/月）
+
     for i in range(12):
         month = (now - timedelta(days=30*i)).strftime("%Y-%m")
+        # 逐月下降：最近月份排放更低
+        month_factor = 1.0 - (11 - i) * 0.02  # 从第1个月到第12个月，下降约24%
         monthly_trend.append({
             "month": month,
-            "scope1": round(random.uniform(80, 120), 2),
-            "scope2": round(random.uniform(50, 90), 2),
-            "scope3": round(random.uniform(40, 80), 2),
+            "scope1": round(base_emission * 0.45 * month_factor * random.uniform(0.98, 1.02), 2),
+            "scope2": round(base_emission * 0.38 * month_factor * random.uniform(0.98, 1.02), 2),
+            "scope3": round(base_emission * 0.17 * month_factor * random.uniform(0.98, 1.02), 2),
         })
     monthly_trend.reverse()
 
@@ -98,16 +103,33 @@ async def get_scope_distribution():
 async def get_realtime_emissions():
     """实时排放数据流（用于3D场景实时更新）"""
     now = datetime.now()
+    hour = now.hour
+
+    # 根据时间段调整排放强度
+    if 8 <= hour <= 18:  # 工作时间，排放较高
+        co2_base = random.uniform(1.5, 2.5)
+        power_base = random.uniform(120, 180)
+    elif 19 <= hour <= 22:  # 晚间，排放中等
+        co2_base = random.uniform(1.0, 2.0)
+        power_base = random.uniform(80, 140)
+    else:  # 深夜，排放较低
+        co2_base = random.uniform(0.5, 1.2)
+        power_base = random.uniform(40, 80)
+
     zone_names = ["生产车间A区", "生产车间B区", "仓储物流区", "办公区", "能源站", "废水处理站"]
+    # 各区域排放强度系数（能源站最高，办公区最低）
+    zone_factors = [1.2, 0.9, 0.5, 0.2, 1.5, 0.4]
     readings = []
     for i, zname in enumerate(zone_names):
+        factor = zone_factors[i]
+        co2_rate = round(co2_base * factor * random.uniform(0.9, 1.1), 2)
         readings.append({
             "zone_id": f"zone_{chr(97+i)}",
             "zone_name": zname,
-            "co2_rate": round(random.uniform(0.5, 3.0), 2),
-            "power": round(random.uniform(50, 200), 1),
-            "gas": round(random.uniform(10, 80), 1),
-            "status": random.choice(["normal", "warning", "critical"]),
+            "co2_rate": co2_rate,
+            "power": round(power_base * factor * random.uniform(0.9, 1.1), 1),
+            "gas": round(50 * factor * random.uniform(0.9, 1.1), 1),
+            "status": "normal" if co2_rate < 2.0 else ("warning" if co2_rate < 2.5 else "critical"),
             "timestamp": now.isoformat(),
         })
     return {
@@ -136,4 +158,3 @@ async def get_heatmap_data():
         "max_value": max(p["value"] for p in heatmap),
         "min_value": min(p["value"] for p in heatmap),
     }
-
