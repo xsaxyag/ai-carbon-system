@@ -166,33 +166,6 @@ const sceneModes = [
   { label: '园区俯瞰', value: 'park' }
 ]
 
-// 模拟数据（实际应从API获取）
-const mockSummary = {
-  totalEmission: 12580,
-  reductionRate: 18.6,
-  greenPowerRatio: 42.3,
-  assetValue: 358.7,
-  statTrends: [5.2, 12.5, 8.3, null]
-}
-
-const mockScopeDistribution = [
-  { value: 4520, name: 'Scope 1 直接排放', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#e74c3c' }, { offset: 1, color: '#c0392b' }]) } },
-  { value: 5890, name: 'Scope 2 能源间接', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#f39c12' }, { offset: 1, color: '#e67e22' }]) } },
-  { value: 2170, name: 'Scope 3 其他间接', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#27ae60' }, { offset: 1, color: '#2ecc71' }]) } }
-]
-
-const mockTrendData = {
-  months: ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'],
-  scope1: [420, 450, 380, 410, 390, 370, 360, 340, 320, 310, 330],
-  scope2: [520, 550, 490, 510, 480, 460, 440, 420, 400, 410, 430],
-  scope3: [180, 200, 170, 190, 160, 150, 140, 130, 125, 135, 145]
-}
-
-const mockHeatmapData = {
-  areas: ['生产车间A', '生产车间B', '办公楼', '仓库', '研发中心', '停车场', '绿化区'],
-  values: [3200, 2800, 450, 1200, 680, 150, 50]
-}
-
 onMounted(async () => {
   try {
     loading.value = true
@@ -209,51 +182,94 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  // 清理3D场景
   if (threeSceneObj) {
     threeSceneObj.destroy()
     threeSceneObj = null
   }
-  // 清理图表
   ;[pieChartInstance, trendChartInstance, heatmapInstance, rankChartInstance].forEach(c => {
     c?.dispose()
   })
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
   }
+  window.removeEventListener('resize', handleResize)
 })
 
 async function fetchAllData() {
   try {
-    // 实际项目中取消注释以下代码
-    // const [summaryRes, scopeRes, trendRes] = await Promise.all([
-    //   fetch(`${API_BASE}/api/carbon/summary`),
-    //   fetch(`${API_BASE}/api/carbon/scope-distribution`),
-    //   fetch(`${API_BASE}/api/carbon/trend`)
-    // ])
-    // const summary = await summaryRes.json()
-    // const scopeData = await scopeRes.json()
-    // const trendData = await trendRes.json()
+    const [dashboardRes, scopeRes] = await Promise.all([
+      fetch(`${API_BASE}/api/carbon-3d/dashboard`),
+      fetch(`${API_BASE}/api/carbon-3d/scope-distribution`)
+    ])
+    if (!dashboardRes.ok) throw new Error(`dashboard API ${dashboardRes.status}`)
+    if (!scopeRes.ok) throw new Error(`scope API ${scopeRes.status}`)
+    const dashboard = await dashboardRes.json()
+    const scopeData = await scopeRes.json()
 
-    // 使用模拟数据
-    const summary = mockSummary
-    const scopeData = mockScopeDistribution
-    const trendData = mockTrendData
-    const heatData = mockHeatmapData
+    // 统计卡片 (后端 snake_case → 前端显示)
+    statCards.value[0].value = (dashboard.total_emissions / 1000).toFixed(1)
+    statCards.value[1].value = dashboard.reduction_rate.toFixed(1)
+    statCards.value[2].value = dashboard.green_power_ratio.toFixed(1)
+    const assetWan = dashboard.carbon_asset_value / 10000
+    statCards.value[3].value = assetWan.toFixed(1)
+    assetValue.value = assetWan.toFixed(1)
 
-    // 更新统计卡片
-    statCards.value[0].value = (summary.totalEmission / 1000).toFixed(1)
-    statCards.value[1].value = summary.reductionRate.toFixed(1)
-    statCards.value[2].value = summary.greenPowerRatio.toFixed(1)
-    statCards.value[3].value = summary.assetValue.toFixed(1)
-    assetValue.value = summary.assetValue.toFixed(1)
+    // Scope 饼图数据
+    const scopePieData = [
+      {
+        value: scopeData.scope1.total,
+        name: 'Scope 1 直接排放',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#e74c3c' },
+            { offset: 1, color: '#c0392b' }
+          ])
+        }
+      },
+      {
+        value: scopeData.scope2.total,
+        name: 'Scope 2 能源间接',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#f39c12' },
+            { offset: 1, color: '#e67e22' }
+          ])
+        }
+      },
+      {
+        value: scopeData.scope3.total,
+        name: 'Scope 3 其他间接',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#27ae60' },
+            { offset: 1, color: '#2ecc71' }
+          ])
+        }
+      }
+    ]
 
-    // 存储数据供图表使用
+    // 趋势数据
+    const monthly = dashboard.monthly_trend || []
+    const trendMonths = monthly.map(m => m.month)
+    const trendS1 = monthly.map(m => m.scope1)
+    const trendS2 = monthly.map(m => m.scope2)
+    const trendS3 = monthly.map(m => m.scope3)
+
+    // 区域热力数据
+    const regional = dashboard.regional_data || []
+    const areas = regional.map(z => z.name)
+    const values = regional.map(z => z.emissions)
+
     window.__carbonData = {
-      summary,
-      scopeData,
-      trendData,
-      heatData
+      summary: {
+        totalEmission: dashboard.total_emissions,
+        reductionRate: dashboard.reduction_rate,
+        greenPowerRatio: dashboard.green_power_ratio,
+        assetValue: assetWan
+      },
+      scopeData: scopePieData,
+      trendData: { months: trendMonths, scope1: trendS1, scope2: trendS2, scope3: trendS3 },
+      heatData: { areas, values }
     }
   } catch (err) {
     error.value = '数据加载失败: ' + err.message
@@ -271,19 +287,16 @@ function initThreeScene() {
     autoRotateSpeed: 0.3
   })
 
-  // 根据场景模式添加对象
   if (sceneMode.value === 'earth') {
     createEarthScene()
   } else {
     createParkScene()
   }
 
-  // 添加热力粒子
   particleSystem = createHeatParticle(500, { spread: 80, color: 0xff4d4f })
   threeSceneObj.scene.add(particleSystem)
   particleCount.value = 500
 
-  // 动画循环更新粒子
   threeSceneObj.addAnimationHandler(() => {
     if (particleSystem && particleSystem.userData.originalPositions) {
       const positions = particleSystem.geometry.attributes.position.array
@@ -298,8 +311,6 @@ function initThreeScene() {
 
 function createEarthScene() {
   const scene = threeSceneObj.scene
-
-  // 创建简化地球（球体）
   const earthGeometry = new THREE.SphereGeometry(50, 64, 64)
   const earthMaterial = new THREE.MeshPhongMaterial({
     color: 0x111d33,
@@ -312,7 +323,6 @@ function createEarthScene() {
   earth.rotation.x = Math.PI / 6
   scene.add(earth)
 
-  // 添加线框
   const wireframe = new THREE.WireframeGeometry(earthGeometry)
   const lineMaterial = new THREE.LineBasicMaterial({
     color: 0x1890ff,
@@ -323,14 +333,13 @@ function createEarthScene() {
   wireframeMesh.rotation.x = Math.PI / 6
   scene.add(wireframeMesh)
 
-  // 在地球上添加碳排放柱状图（模拟位置）
   const cityData = [
-    { lat: 31.23, lon: 121.47, value: 1200 },  // 上海
-    { lat: 39.90, lon: 116.40, value: 980 },   // 北京
-    { lat: 23.13, lon: 113.26, value: 750 },   // 广州
-    { lat: 22.54, lon: 114.06, value: 680 },   // 深圳
-    { lat: 30.57, lon: 104.07, value: 520 },   // 成都
-    { lat: 34.34, lon: 108.94, value: 430 }    // 西安
+    { lat: 31.23, lon: 121.47, value: 1200 },
+    { lat: 39.90, lon: 116.40, value: 980 },
+    { lat: 23.13, lon: 113.26, value: 750 },
+    { lat: 22.54, lon: 114.06, value: 680 },
+    { lat: 30.57, lon: 104.07, value: 520 },
+    { lat: 34.34, lon: 108.94, value: 430 }
   ]
 
   cityData.forEach(city => {
@@ -346,14 +355,11 @@ function createEarthScene() {
     scene.add(bar)
   })
 
-  // 相机位置
   threeSceneObj.camera.position.set(0, 80, 120)
 }
 
 function createParkScene() {
   const scene = threeSceneObj.scene
-
-  // 地面
   const groundGeometry = new THREE.PlaneGeometry(200, 200)
   const groundMaterial = new THREE.MeshPhongMaterial({
     color: 0x111d33,
@@ -364,12 +370,10 @@ function createParkScene() {
   ground.receiveShadow = true
   scene.add(ground)
 
-  // 网格线
   const gridHelper = new THREE.GridHelper(200, 50, 0x1890ff, 0x111d33)
   gridHelper.position.y = 0.01
   scene.add(gridHelper)
 
-  // 添加建筑群（模拟园区）
   const buildings = [
     { x: -30, z: -20, w: 15, h: 25, d: 15, emission: 800 },
     { x: 0, z: -20, w: 20, h: 30, d: 15, emission: 1200 },
@@ -395,7 +399,6 @@ function createParkScene() {
     building.receiveShadow = true
     scene.add(building)
 
-    // 添加碳排放标签（用发光球体表示）
     const labelGeometry = new THREE.SphereGeometry(1.5, 16, 16)
     const labelMaterial = new THREE.MeshBasicMaterial({
       color,
@@ -407,7 +410,6 @@ function createParkScene() {
     scene.add(label)
   })
 
-  // 相机位置
   threeSceneObj.camera.position.set(80, 60, 80)
   threeSceneObj.controls.target.set(5, 10, 0)
 }
@@ -415,7 +417,6 @@ function createParkScene() {
 function switchScene(mode) {
   sceneMode.value = mode
   if (threeSceneObj) {
-    // 清理当前场景
     const scene = threeSceneObj.scene
     while (scene.children.length > 0) {
       const obj = scene.children[0]
@@ -423,15 +424,11 @@ function switchScene(mode) {
       if (obj.material) obj.material.dispose()
       scene.remove(obj)
     }
-    // 重新添加灯光
-    const { addLights } = require('../utils/three-scene')
-    // 重新初始化场景
     if (mode === 'earth') {
       createEarthScene()
     } else {
       createParkScene()
     }
-    // 重新添加粒子
     if (particleSystem) {
       scene.add(particleSystem)
     }
@@ -439,10 +436,9 @@ function switchScene(mode) {
 }
 
 function initCharts() {
-  // ECharts 3D饼图
   if (pie3DChart.value) {
     pieChartInstance = markRaw(echarts.init(pie3DChart.value))
-    const data = window.__carbonData?.scopeData || mockScopeDistribution
+    const data = window.__carbonData?.scopeData || []
     pieChartInstance.setOption({
       tooltip: {
         trigger: 'item',
@@ -480,10 +476,9 @@ function initCharts() {
     })
   }
 
-  // 趋势图
   if (trendChart.value) {
     trendChartInstance = markRaw(echarts.init(trendChart.value))
-    const trendData = window.__carbonData?.trendData || mockTrendData
+    const td = window.__carbonData?.trendData || { months: [], scope1: [], scope2: [], scope3: [] }
     trendChartInstance.setOption({
       tooltip: {
         trigger: 'axis',
@@ -502,7 +497,7 @@ function initCharts() {
       grid: { left: '8%', right: '4%', bottom: '18%', top: '8%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: trendData.months,
+        data: td.months,
         axisLabel: { fontSize: 9, color: '#606266', rotate: 30 },
         axisLine: { lineStyle: { color: '#2c3e50' } }
       },
@@ -515,21 +510,21 @@ function initCharts() {
       },
       series: [
         {
-          name: 'Scope 1', type: 'line', smooth: true, data: trendData.scope1,
+          name: 'Scope 1', type: 'line', smooth: true, data: td.scope1,
           itemStyle: { color: '#e74c3c' },
           lineStyle: { width: 2 },
           areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(231,76,60,0.3)' }, { offset: 1, color: 'rgba(231,76,60,0.01)' }]) },
           symbol: 'circle', symbolSize: 5
         },
         {
-          name: 'Scope 2', type: 'line', smooth: true, data: trendData.scope2,
+          name: 'Scope 2', type: 'line', smooth: true, data: td.scope2,
           itemStyle: { color: '#f39c12' },
           lineStyle: { width: 2 },
           areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(243,156,18,0.3)' }, { offset: 1, color: 'rgba(243,156,18,0.01)' }]) },
           symbol: 'circle', symbolSize: 5
         },
         {
-          name: 'Scope 3', type: 'line', smooth: true, data: trendData.scope3,
+          name: 'Scope 3', type: 'line', smooth: true, data: td.scope3,
           itemStyle: { color: '#27ae60' },
           lineStyle: { width: 2 },
           areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(39,174,96,0.3)' }, { offset: 1, color: 'rgba(39,174,96,0.01)' }]) },
@@ -541,10 +536,9 @@ function initCharts() {
     })
   }
 
-  // 热力图
   if (heatmapChart.value) {
     heatmapInstance = markRaw(echarts.init(heatmapChart.value))
-    const heatData = window.__carbonData?.heatData || mockHeatmapData
+    const hd = window.__carbonData?.heatData || { areas: [], values: [] }
     heatmapInstance.setOption({
       tooltip: {
         formatter: '{b}: {c} tCO₂e',
@@ -562,13 +556,13 @@ function initCharts() {
       },
       yAxis: {
         type: 'category',
-        data: heatData.areas,
+        data: hd.areas,
         axisLabel: { fontSize: 10, color: '#c0c4cc' },
         axisLine: { lineStyle: { color: '#2c3e50' } }
       },
       series: [{
         type: 'bar',
-        data: heatData.values.map((v, i) => ({
+        data: hd.values.map((v, i) => ({
           value: v,
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
@@ -579,9 +573,7 @@ function initCharts() {
         })),
         itemStyle: { borderRadius: [0, 6, 6, 0] },
         barWidth: '60%',
-        label: {
-          show: true, position: 'right', fontSize: 9, color: '#c0c4cc'
-        },
+        label: { show: true, position: 'right', fontSize: 9, color: '#c0c4cc' },
         animationDuration: 1200,
         animationEasing: 'elasticOut',
         animationDelay: (idx) => idx * 120
@@ -589,7 +581,6 @@ function initCharts() {
     })
   }
 
-  // 排放源排行
   if (rankChart.value) {
     rankChartInstance = markRaw(echarts.init(rankChart.value))
     const sources = [
@@ -637,7 +628,6 @@ function initCharts() {
     })
   }
 
-  // 窗口resize监听
   window.addEventListener('resize', handleResize)
 }
 
@@ -647,6 +637,9 @@ function handleResize() {
   })
 }
 </script>
+
+
+
 
 <style scoped>
 .carbon-3d-dashboard {
