@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import random
+import math
 
 router = APIRouter()
 
@@ -13,24 +14,53 @@ router = APIRouter()
 @router.get("/overview")
 async def get_energy_overview():
     """源网荷储总览（用于3D能源枢纽可视化）"""
+    now = datetime.now()
+    hour = now.hour
+
+    # 根据时间段调整能源产出/负荷
+    if 8 <= hour <= 16:  # 日照时段，光伏发电高
+        solar_output = 320.5 * random.uniform(0.8, 1.2)
+        wind_output = 85.3 * random.uniform(0.7, 1.3)
+        grid_import = 800.0 * random.uniform(0.8, 1.2)
+        grid_export = 80.5 * random.uniform(0.5, 1.5)
+        total_load = 1800.0 * random.uniform(0.9, 1.1)
+        charge_power = 50.0 * random.uniform(0.5, 1.5)
+        discharge_power = 100.0 * random.uniform(0.5, 1.5)
+    elif 17 <= hour <= 21:  # 晚高峰
+        solar_output = 0.0
+        wind_output = 85.3 * random.uniform(0.7, 1.3)
+        grid_import = 1500.0 * random.uniform(0.9, 1.1)
+        grid_export = 0.0
+        total_load = 2200.0 * random.uniform(0.95, 1.05)
+        charge_power = 100.0 * random.uniform(0.5, 1.5)
+        discharge_power = 300.0 * random.uniform(0.8, 1.2)
+    else:  # 深夜低谷
+        solar_output = 0.0
+        wind_output = 85.3 * random.uniform(0.7, 1.3)
+        grid_import = 500.0 * random.uniform(0.8, 1.2)
+        grid_export = 0.0
+        total_load = 1200.0 * random.uniform(0.9, 1.1)
+        charge_power = 200.0 * random.uniform(0.8, 1.2)
+        discharge_power = 50.0 * random.uniform(0.5, 1.5)
+
     return {
         "source": {
             "solar_capacity_kw": 500,
             "wind_capacity_kw": 200,
-            "solar_output_kw": round(320.5 + random.uniform(-30, 50), 1),
-            "wind_output_kw": round(85.3 + random.uniform(-10, 20), 1),
+            "solar_output_kw": round(solar_output, 1),
+            "wind_output_kw": round(wind_output, 1),
             "green_ratio": 35.2,
             "renewable_today_kwh": round(320.5 * 8 + random.uniform(-200, 300)),
         },
         "grid": {
-            "grid_import_kw": round(1250.8 + random.uniform(-100, 150), 1),
-            "grid_export_kw": round(80.5 + random.uniform(-10, 30), 1),
+            "grid_import_kw": round(grid_import, 1),
+            "grid_export_kw": round(grid_export, 1),
             "peak_shaving_kw": 350.0,
             "grid_price_cny_per_kwh": round(0.68 + random.uniform(-0.1, 0.15), 2),
         },
         "load": {
-            "total_load_kw": round(2100.0 + random.uniform(-150, 200), 1),
-            "load_forecast_24h": [round(1800 + 800 * (0.5 + 0.5 * __import__('math').sin(i * 3.14159 / 12)), 1) for i in range(24)],
+            "total_load_kw": round(total_load, 1),
+            "load_forecast_24h": [round(1800 + 800 * (0.5 + 0.5 * math.sin(i * math.pi / 12)), 1) for i in range(24)],
             "peak_load_kw": 2600.0,
             "valley_load_kw": 1200.0,
             "load_by_area": [
@@ -44,8 +74,8 @@ async def get_energy_overview():
         "storage": {
             "soc_percent": 72,
             "capacity_kwh": 800,
-            "charge_power_kw": round(150.0 + random.uniform(-20, 50), 1),
-            "discharge_power_kw": round(200.0 + random.uniform(-30, 60), 1),
+            "charge_power_kw": round(charge_power, 1),
+            "discharge_power_kw": round(discharge_power, 1),
             "cycle_count": 1247,
             "health_percent": 97.2,
         },
@@ -54,7 +84,7 @@ async def get_energy_overview():
             "carbon_reduction_today_kgco2": round(320.5 * 8 * 0.0005, 2),
             "cost_savings_today_cny": round(320.5 * 8 * 0.68 * 0.35, 2),
         },
-        "update_time": datetime.now().isoformat(),
+        "update_time": now.isoformat(),
     }
 
 
@@ -63,18 +93,42 @@ async def get_energy_prediction(hours: int = Query(24, ge=1, le=168)):
     """AI负荷预测数据（未来24h/7天）"""
     now = datetime.now()
     forecast = []
+
     for i in range(hours):
         t = now + timedelta(hours=i)
         hour = t.hour
-        base_load = 1800 + 800 * (0.5 + 0.5 * __import__('math').sin(hour * 3.14159 / 12))
+
+        # 负荷预测：基于时间段
+        if 8 <= hour <= 18:
+            base_load = 2200.0
+        elif 19 <= hour <= 22:
+            base_load = 1800.0
+        else:
+            base_load = 1200.0
+
+        # 光伏发电：基于时间段
+        if 6 <= hour <= 18:
+            solar_gen = 300.0 * math.sin((hour - 6) * math.pi / 12)
+        else:
+            solar_gen = 0.0
+
+        # 电价：基于时间段（峰谷平）
+        if 8 <= hour <= 11 or 16 <= hour <= 21:
+            grid_price = 0.92
+        elif 12 <= hour <= 14:
+            grid_price = 0.68
+        else:
+            grid_price = 0.32
+
         forecast.append({
             "timestamp": t.isoformat(),
             "predicted_load_kw": round(base_load + random.uniform(-100, 100), 1),
             "actual_load_kw": round(base_load + random.uniform(-50, 50), 1) if i < 2 else None,
-            "solar_gen_kw": round(max(0, 300 * __import__('math').sin(max(0, hour - 6) * 3.14159 / 12)), 1) if 6 <= hour <= 18 else 0,
-            "wind_gen_kw": round(85 + random.uniform(-20, 30), 1),
-            "grid_price_cny": round(0.4 + 0.5 * max(0, __import__('math').sin((hour - 10) * 3.14159 / 8)), 2),
+            "solar_gen_kw": round(max(0, solar_gen * random.uniform(0.8, 1.2)), 1),
+            "wind_gen_kw": round(85.0 + random.uniform(-20, 30), 1),
+            "grid_price_cny": grid_price,
         })
+
     return {
         "forecast": forecast,
         "accuracy": {"mae": 85.2, "rmse": 112.7, "r2": 0.91},
