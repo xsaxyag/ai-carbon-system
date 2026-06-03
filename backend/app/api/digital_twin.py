@@ -37,23 +37,55 @@ async def get_factory_emissions(hours: int = Query(24, ge=1, le=168)):
     """获取工厂实时排放数据（按区域/时间）"""
     now = datetime.now()
     timeline = []
+
+    # 各区域基准排放（tCO2e/小时）
+    base = {
+        "prod_a": 320.5 / 24,
+        "prod_b": 215.3 / 24,
+        "warehouse": 128.7 / 24,
+        "energy": 280.1 / 24,
+        "treatment": 95.8 / 24,
+        "office": 45.2 / 24,
+    }
+
     for i in range(hours):
         t = now - timedelta(hours=i)
+        hour = t.hour
+
+        # 根据时间段调整排放强度
+        if 8 <= hour <= 18:
+            factor = random.uniform(0.9, 1.1)
+        elif 19 <= hour <= 22:
+            factor = random.uniform(0.6, 0.8)
+        else:
+            factor = random.uniform(0.3, 0.5)
+
         timeline.append({
             "timestamp": t.isoformat(),
-            "prod_a": round(320.5 / 24 + random.uniform(-20, 20), 2),
-            "prod_b": round(215.3 / 24 + random.uniform(-15, 15), 2),
-            "warehouse": round(128.7 / 24 + random.uniform(-8, 8), 2),
-            "energy": round(280.1 / 24 + random.uniform(-25, 25), 2),
-            "treatment": round(95.8 / 24 + random.uniform(-5, 5), 2),
-            "office": round(45.2 / 24 + random.uniform(-3, 3), 2),
+            "prod_a": round(base["prod_a"] * factor, 2),
+            "prod_b": round(base["prod_b"] * factor, 2),
+            "warehouse": round(base["warehouse"] * factor, 2),
+            "energy": round(base["energy"] * factor, 2),
+            "treatment": round(base["treatment"] * factor, 2),
+            "office": round(base["office"] * factor, 2),
         })
+
     timeline.reverse()
+
+    total_24h = sum(
+        p["prod_a"] + p["prod_b"] + p["warehouse"] + p["energy"] + p["treatment"] + p["office"]
+        for p in timeline[:min(24, len(timeline))]
+    )
+    peak_hour = max(
+        timeline,
+        key=lambda x: x["prod_a"] + x["prod_b"] + x["warehouse"] + x["energy"] + x["treatment"] + x["office"]
+    )
+
     return {
         "timeline": timeline,
         "summary": {
-            "total_24h": round(sum(p["prod_a"] + p["prod_b"] + p["warehouse"] + p["energy"] + p["treatment"] + p["office"] for p in timeline), 2),
-            "peak_hour": max(timeline, key=lambda x: sum(x[k] for k in x if k not in ["timestamp"])),
+            "total_24h": round(total_24h, 2),
+            "peak_hour": peak_hour,
             "alert_zones": ["energy"],
         },
         "update_time": now.isoformat(),
