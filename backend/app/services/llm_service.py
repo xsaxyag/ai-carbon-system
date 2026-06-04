@@ -75,8 +75,8 @@ class LLMService:
         try:
             if not config.LLM_API_KEY or config.LLM_API_KEY == "sk-xxx":
                 raise ValueError("API Key未配置")
-            # httpx client，超时30秒
-            self._client = httpx.Client(timeout=30.0)
+            # httpx async client，超时30秒
+            self._client = httpx.AsyncClient(timeout=30.0)
             self._available = True
         except Exception as e:
             self._available = False
@@ -91,7 +91,7 @@ class LLMService:
                 self._available = False
         return self._available
 
-    def chat(
+    async def chat(
         self,
         messages: List[Dict],
         temperature: float = None,
@@ -125,7 +125,7 @@ class LLMService:
             "max_tokens": max_tokens or config.LLM_MAX_TOKENS
         }
 
-        response = self._client.post(url, headers=headers, json=payload)
+        response = await self._client.post(url, headers=headers, json=payload)
         response.raise_for_status()
 
         result = response.json()
@@ -137,7 +137,7 @@ class LLMService:
             content = message.get("reasoning_content", "")
         return content
 
-    def extract_ocr_data(self, ocr_text: str) -> Dict:
+    async def extract_ocr_data(self, ocr_text: str) -> Dict:
         """
         从OCR文本中智能提取碳相关数据
 
@@ -151,7 +151,7 @@ class LLMService:
             return self._mock_extract(ocr_text)
 
         try:
-            response = self.chat(
+            response = await self.chat(
                 messages=[{"role": "user", "content": f"{OCR_EXTRACT_PROMPT}\n\n请从以下OCR文本中提取碳数据相关信息：\n\n{ocr_text}"}],
                 temperature=0.1,
                 max_tokens=1024
@@ -179,7 +179,7 @@ class LLMService:
         except Exception as e:
             return self._mock_extract(ocr_text)
 
-    def analyze_company_emission(self, company_data: dict, emission_records: list) -> str:
+    async def analyze_company_emission(self, company_data: dict, emission_records: list) -> str:
         """
         分析企业碳排放数据，给出定制化建议
 
@@ -210,7 +210,7 @@ class LLMService:
 4. 评估企业碳中和进展水平
 5. 建议下一步行动优先级"""
 
-        return self.chat(
+        return await self.chat(
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
             max_tokens=config.LLM_MAX_TOKENS

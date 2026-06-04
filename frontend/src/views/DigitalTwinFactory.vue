@@ -168,6 +168,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { Promotion, InfoFilled } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
+import * as THREE from 'three'
 import { createThreeScene, createFactoryBuilding, createFlowLine } from '../utils/three-scene'
 
 // 状态
@@ -250,8 +251,8 @@ async function fetchFactoryData() {
 
     // 调用真实API
     const [zonesRes, emissionsRes] = await Promise.all([
-      fetch(`${API_BASE}/api/carbon-3d/factory/zones`),
-      fetch(`${API_BASE}/api/carbon-3d/factory/emissions?hours=24`)
+      fetch(`${API_BASE}/api/v1/digital-twin/factory/zones`),
+      fetch(`${API_BASE}/api/v1/digital-twin/factory/emissions?hours=24`)
     ])
 
     if (!zonesRes.ok) throw new Error(`工厂区域API请求失败: ${zonesRes.status}`)

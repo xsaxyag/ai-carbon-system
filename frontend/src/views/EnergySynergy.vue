@@ -168,6 +168,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { Setting, Promotion, Check, InfoFilled, DataLine, TrendCharts } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
+import * as THREE from 'three'
 import { createThreeScene, createFlowLine, createBatteryModel } from '../utils/three-scene'
 
 // 状态
@@ -272,11 +273,11 @@ async function fetchEnergyData() {
 
     // 调用真实API
     const [overviewRes, predictionRes, storageRes, suggestionsRes, realtimeRes] = await Promise.all([
-      fetch(`${API_BASE}/api/carbon-3d/overview`),
-      fetch(`${API_BASE}/api/carbon-3d/prediction?hours=24`),
-      fetch(`${API_BASE}/api/carbon-3d/storage/status`),
-      fetch(`${API_BASE}/api/carbon-3d/optimization-suggestions`),
-      fetch(`${API_BASE}/api/carbon-3d/energy-flow-realtime`)
+      fetch(`${API_BASE}/api/v1/energy-synergy/overview`),
+      fetch(`${API_BASE}/api/v1/energy-synergy/prediction?hours=24`),
+      fetch(`${API_BASE}/api/v1/energy-synergy/storage/status`),
+      fetch(`${API_BASE}/api/v1/energy-synergy/optimization-suggestions`),
+      fetch(`${API_BASE}/api/v1/energy-synergy/energy-flow-realtime`)
     ])
 
     if (!overviewRes.ok) throw new Error(`能源概览API请求失败: ${overviewRes.status}`)

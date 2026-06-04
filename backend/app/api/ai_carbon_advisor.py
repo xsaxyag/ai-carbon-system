@@ -266,7 +266,7 @@ xxx
     # 调用LLM
     try:
         if llm_service.available:
-            reply = llm_service.chat(messages, temperature=0.7)
+            reply = await llm_service.chat(messages, temperature=0.7)
         else:
             reply = _fallback_reply(user_message, intent)
     except Exception as e:
@@ -327,7 +327,7 @@ async def create_lca_model(request: LCA建模Request):
     
     try:
         if llm_service.available:
-            result = llm_service.chat([
+            result = await llm_service.chat([
                 {"role": "system", "content": "你是产品LCA建模专家，精通ISO 14067标准。"},
                 {"role": "user", "content": prompt}
             ], temperature=0.3)

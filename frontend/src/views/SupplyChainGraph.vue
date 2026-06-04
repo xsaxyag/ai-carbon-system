@@ -232,6 +232,7 @@ const threeContainer = ref(null)
 // 3D场景
 let threeSceneObj = null
 let forceGraphGroup = null
+let networkData = null  // 存储API数据
 
 // 数据
 const networkStats = ref({
@@ -341,8 +342,8 @@ async function fetchNetworkData() {
 
     // 调用真实API
     const [networkRes, suppliersRes] = await Promise.all([
-      fetch(`${API_BASE}/api/carbon-3d/supply-chain/network`),
-      fetch(`${API_BASE}/api/carbon-3d/supply-chain/suppliers`)
+      fetch(`${API_BASE}/api/v1/supply-chain/network`),
+      fetch(`${API_BASE}/api/v1/supply-chain/suppliers`)
     ])
 
     if (!networkRes.ok) throw new Error(`供应链网络API请求失败: ${networkRes.status}`)
@@ -352,22 +353,25 @@ async function fetchNetworkData() {
     const suppliersData = await suppliersRes.json()
 
     // 更新供应链网络数据（映射到mockNetworkData格式）
-    window.__networkNodes = (networkData.nodes || []).map(n => ({
+    const mappedNodes = (networkData.nodes || []).map(n => ({
       id: n.id || 0,
       name: n.name || 'Unknown',
-      type: n.type || 'tier1',
-      emission: n.emission || 0,
-      carbonFootprint: n.carbon_footprint || 0,
+      type: n.tier === 1 ? 'core' : `tier${n.tier}`,
+      emission: n.emissions || 0,
+      carbonFootprint: n.carbon_intensity || 0,
       riskLevel: n.risk_level || 'medium',
       x: (n.x || 0) - 50,
       y: (n.y || 0) - 10,
       z: (n.z || 0) - 50
     }))
-    window.__networkLinks = (networkData.links || []).map(l => ({
+    const mappedLinks = (networkData.links || []).map(l => ({
       source: l.source || 0,
       target: l.target || 0,
-      value: l.value || 0
+      value: l.carbon_transfer || 0
     }))
+    networkData = { nodes: mappedNodes, links: mappedLinks }
+    window.__networkNodes = mappedNodes
+    window.__networkLinks = mappedLinks
 
     // 更新供应商列表
     suppliers.value = (suppliersData.suppliers || []).map(s => ({
@@ -418,7 +422,7 @@ function initThreeScene() {
   scene.add(ground)
 
   // 创建力导向图
-  createForceGraph(mockNetworkData)
+  createForceGraph(networkData || mockNetworkData)
 
   // 相机位置
   threeSceneObj.camera.position.set(0, 80, 100)
@@ -654,7 +658,7 @@ function handleFilter() {
 
 function focusOnNode(nodeId) {
   if (!threeSceneObj) return
-  const nodeData = mockNetworkData.nodes.find(n => n.id === nodeId)
+  const nodeData = (networkData?.nodes || mockNetworkData.nodes).find(n => n.id === nodeId)
   if (nodeData) {
     // 将相机对准该节点
     const camera = threeSceneObj.camera
@@ -679,8 +683,8 @@ function saveRecommendation(item) {
 }
 
 function updateNetworkStats() {
-  const nodes = mockNetworkData.nodes
-  const links = mockNetworkData.links
+  const nodes = networkData?.nodes || mockNetworkData.nodes
+  const links = networkData?.links || mockNetworkData.links
   const highRiskNodes = nodes.filter(n => n.riskLevel === 'high').length
   const avgIntensity = (nodes.reduce((sum, n) => sum + n.carbonFootprint, 0) / nodes.length).toFixed(1)
 

@@ -65,6 +65,38 @@
           <el-icon><ChatDotRound /></el-icon>
           <span>AI顾问</span>
         </el-menu-item>
+
+        <!-- V2.1 AI智能碳顾问 -->
+        <el-menu-item index="/ai-carbon-advisor">
+          <el-icon><Promotion /></el-icon>
+          <span>AI智能顾问</span>
+        </el-menu-item>
+
+        <el-divider style="margin: 8px 0; border-color: #2d2d4a;" />
+
+        <!-- V2.0 3D可视化 -->
+        <div class="menu-title" style="padding: 8px 20px; color: #909399; font-size: 12px;">3D可视化大屏</div>
+        
+        <el-menu-item index="/3d-dashboard">
+          <el-icon><DataBoard /></el-icon>
+          <span>碳全景3D</span>
+        </el-menu-item>
+        <el-menu-item index="/foot-print-3d">
+          <el-icon><Scale /></el-icon>
+          <span>碳足迹3D</span>
+        </el-menu-item>
+        <el-menu-item index="/digital-twin">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>数字孪生工厂</span>
+        </el-menu-item>
+        <el-menu-item index="/supply-chain">
+          <el-icon><Share /></el-icon>
+          <span>供应链碳图谱</span>
+        </el-menu-item>
+        <el-menu-item index="/energy-synergy">
+          <el-icon><Lightning /></el-icon>
+          <span>源网荷储协同</span>
+        </el-menu-item>
       </el-menu>
 
       <!-- 侧边栏底部用户信息 -->

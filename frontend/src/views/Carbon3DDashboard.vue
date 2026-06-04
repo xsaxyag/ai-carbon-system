@@ -121,6 +121,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { PieChart, TrendCharts, Histogram, Promotion } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
+import * as THREE from 'three'
 import {
   createThreeScene,
   createCarbonBar,
@@ -198,8 +199,8 @@ onBeforeUnmount(() => {
 async function fetchAllData() {
   try {
     const [dashboardRes, scopeRes] = await Promise.all([
-      fetch(`${API_BASE}/api/carbon-3d/dashboard`),
-      fetch(`${API_BASE}/api/carbon-3d/scope-distribution`)
+      fetch(`${API_BASE}/api/v1/carbon-3d/dashboard`),
+      fetch(`${API_BASE}/api/v1/carbon-3d/scope-distribution`)
     ])
     if (!dashboardRes.ok) throw new Error(`dashboard API ${dashboardRes.status}`)
     if (!scopeRes.ok) throw new Error(`scope API ${scopeRes.status}`)

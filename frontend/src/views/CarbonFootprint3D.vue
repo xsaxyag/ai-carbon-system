@@ -27,11 +27,11 @@
             @node-click="handleNodeClick"
             class="lca-tree"
           >
-            <template #default="{ node, data }">
-              <span class="tree-node" :class="{ 'high-emission': data.isHigh }">
-                <span class="node-label">{{ data.label }}</span>
-                <span v-if="data.value !== undefined" class="node-value" :style="{ color: data.isHigh ? '#ff4d4f' : '#00d4aa' }">
-                  {{ data.value }} kgCO₂e
+            <template #default="{ node, data: slotData }">
+              <span class="tree-node" :class="{ 'high-emission': slotData.isHigh }">
+                <span class="node-label">{{ slotData.label }}</span>
+                <span v-if="slotData.value !== undefined" class="node-value" :style="{ color: slotData.isHigh ? '#ff4d4f' : '#00d4aa' }">
+                  {{ slotData.value }} kgCO₂e
                 </span>
               </span>
             </template>
@@ -136,6 +136,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { List, Box, DataLine, InfoFilled, Histogram, Promotion } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
+import * as THREE from 'three'
 import { createThreeScene, createFlowLine, createFootprintNode } from '../utils/three-scene'
 
 // 状态
@@ -246,7 +247,7 @@ onBeforeUnmount(() => {
 async function loadProductData(productId) {
   try {
     // 调用真实API
-    const res = await fetch(`${API_BASE}/api/carbon-3d/lca-chain/${productId}`)
+    const res = await fetch(`${API_BASE}/api/v1/footprint-3d/lca-chain/prod_${String(productId).padStart(3, '0')}`)
     if (!res.ok) throw new Error(`API请求失败: ${res.status}`)
     const apiData = await res.json()
 
