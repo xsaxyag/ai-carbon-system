@@ -43,7 +43,8 @@ const routes = [
   { path: '/foot-print-3d', name: 'CarbonFootprint3D', component: () => import('./views/CarbonFootprint3D.vue') },
   { path: '/digital-twin', name: 'DigitalTwinFactory', component: () => import('./views/DigitalTwinFactory.vue') },
   { path: '/supply-chain', name: 'SupplyChainGraph', component: () => import('./views/SupplyChainGraph.vue') },
-  { path: '/energy-synergy', name: 'EnergySynergy', component: () => import('./views/EnergySynergy.vue') }
+  { path: '/energy-synergy', name: 'EnergySynergy', component: () => import('./views/EnergySynergy.vue') },
+  { path: '/site-map-3d', name: 'SiteMap3D', component: () => import('./views/SiteMap3D.vue') }
 ]
 
 const router = createRouter({

@@ -350,11 +350,11 @@ async function fetchNetworkData() {
     if (!networkRes.ok) throw new Error(`供应链网络API请求失败: ${networkRes.status}`)
     if (!suppliersRes.ok) throw new Error(`供应商列表API请求失败: ${suppliersRes.status}`)
 
-    const networkData = await networkRes.json()
+    const networkDataRaw = await networkRes.json()
     const suppliersData = await suppliersRes.json()
 
     // 更新供应链网络数据（映射到mockNetworkData格式）
-    const mappedNodes = (networkData.nodes || []).map(n => ({
+    const mappedNodes = (networkDataRaw.nodes || []).map(n => ({
       id: n.id || 0,
       name: n.name || 'Unknown',
       type: n.tier === 1 ? 'core' : `tier${n.tier}`,
@@ -365,7 +365,7 @@ async function fetchNetworkData() {
       y: (n.y || 0) - 10,
       z: (n.z || 0) - 50
     }))
-    const mappedLinks = (networkData.links || []).map(l => ({
+    const mappedLinks = (networkDataRaw.links || []).map(l => ({
       source: l.source || 0,
       target: l.target || 0,
       value: l.carbon_transfer || 0

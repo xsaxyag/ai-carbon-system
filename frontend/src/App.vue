@@ -97,6 +97,9 @@
           <el-icon><Lightning /></el-icon>
           <span>源网荷储协同</span>
         </el-menu-item>
+        <el-menu-item index="/site-map-3d">n          <el-icon><MapLocation /></el-icon>
+          <span>园区地图3D</span>
+        </el-menu-item>
       </el-menu>
 
       <!-- 侧边栏底部用户信息 -->
