@@ -251,8 +251,8 @@ async function fetchFactoryData() {
 
     // 调用真实API
     const [zonesRes, emissionsRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/digital-twin/factory/zones`),
-      fetch(`${API_BASE}/api/v1/digital-twin/factory/emissions?hours=24`)
+      fetch(`${API_BASE}/digital-twin/factory/zones`),
+      fetch(`${API_BASE}/digital-twin/factory/emissions?hours=24`)
     ])
 
     if (!zonesRes.ok) throw new Error(`工厂区域API请求失败: ${zonesRes.status}`)
