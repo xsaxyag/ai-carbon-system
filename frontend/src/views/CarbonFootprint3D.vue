@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
 async function loadProductData(productId) {
   try {
     // 调用真实API
-    const res = await fetch(`${API_BASE}/api/v1/footprint-3d/lca-chain/prod_${String(productId).padStart(3, '0')}`)
+    const res = await fetch(`${API_BASE}/footprint-3d/lca-chain/prod_${String(productId).padStart(3, '0')}`)
     if (!res.ok) throw new Error(`API请求失败: ${res.status}`)
     const apiData = await res.json()
 

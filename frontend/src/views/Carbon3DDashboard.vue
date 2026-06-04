@@ -199,8 +199,8 @@ onBeforeUnmount(() => {
 async function fetchAllData() {
   try {
     const [dashboardRes, scopeRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/carbon-3d/dashboard`),
-      fetch(`${API_BASE}/api/v1/carbon-3d/scope-distribution`)
+      fetch(`${API_BASE}/carbon-3d/dashboard`),
+      fetch(`${API_BASE}/carbon-3d/scope-distribution`)
     ])
     if (!dashboardRes.ok) throw new Error(`dashboard API ${dashboardRes.status}`)
     if (!scopeRes.ok) throw new Error(`scope API ${scopeRes.status}`)

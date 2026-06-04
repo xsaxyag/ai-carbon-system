@@ -273,11 +273,11 @@ async function fetchEnergyData() {
 
     // 调用真实API
     const [overviewRes, predictionRes, storageRes, suggestionsRes, realtimeRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/energy-synergy/overview`),
-      fetch(`${API_BASE}/api/v1/energy-synergy/prediction?hours=24`),
-      fetch(`${API_BASE}/api/v1/energy-synergy/storage/status`),
-      fetch(`${API_BASE}/api/v1/energy-synergy/optimization-suggestions`),
-      fetch(`${API_BASE}/api/v1/energy-synergy/energy-flow-realtime`)
+      fetch(`${API_BASE}/energy-synergy/overview`),
+      fetch(`${API_BASE}/energy-synergy/prediction?hours=24`),
+      fetch(`${API_BASE}/energy-synergy/storage/status`),
+      fetch(`${API_BASE}/energy-synergy/optimization-suggestions`),
+      fetch(`${API_BASE}/energy-synergy/energy-flow-realtime`)
     ])
 
     if (!overviewRes.ok) throw new Error(`能源概览API请求失败: ${overviewRes.status}`)

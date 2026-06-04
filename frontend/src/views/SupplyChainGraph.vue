@@ -215,6 +215,7 @@ import * as echarts from 'echarts'
 import { Setting, Search, InfoFilled, Promotion, List, ArrowDown } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
+import { createThreeScene } from '../utils/three-scene.js'
 
 // 状态
 const loading = ref(true)
@@ -342,8 +343,8 @@ async function fetchNetworkData() {
 
     // 调用真实API
     const [networkRes, suppliersRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/supply-chain/network`),
-      fetch(`${API_BASE}/api/v1/supply-chain/suppliers`)
+      fetch(`${API_BASE}/supply-chain/network`),
+      fetch(`${API_BASE}/supply-chain/suppliers`)
     ])
 
     if (!networkRes.ok) throw new Error(`供应链网络API请求失败: ${networkRes.status}`)
