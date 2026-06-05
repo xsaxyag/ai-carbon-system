@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import path from 'path'
 
 export default defineConfig({
   base: '/ai-carbon-system/',
@@ -19,10 +20,27 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src'
+      '@': path.resolve(__dirname, 'src')
     }
   },
   optimizeDeps: {
-    include: ['three']
+    include: ['three', 'echarts']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Three.js 3D图形库
+          'vendor-three': ['three'],
+          // ECharts 图表库
+          'vendor-echarts': ['echarts'],
+          // Element Plus UI框架
+          'vendor-element': ['element-plus', '@element-plus/icons-vue'],
+          // Vue核心
+          'vendor-vue': ['vue', 'vue-router']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   }
 })

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="site-map-3d">
     <div class="page-header">
       <h2>🌍 园区3D可视化</h2>
@@ -286,6 +286,7 @@ import { UploadFilled } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import * as echarts from 'echarts'
 
 // Three.js变量
 let scene = null
@@ -303,6 +304,9 @@ let recordingStartTime = null
 
 // 状态
 const threeContainer = ref(null)
+const trendChart = ref(null)
+const carbonTrendData = ref(null)
+const optimizationSuggestions = ref(null)
 const uploadedImage = ref('')
 const imageFile = ref(null)
 const converting = ref(false)
