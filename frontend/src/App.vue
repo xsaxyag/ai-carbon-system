@@ -61,11 +61,6 @@
           <el-icon><FolderOpened /></el-icon>
           <span>数据备份</span>
         </el-menu-item>
-        <el-menu-item index="/ai-advisor">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>AI顾问</span>
-        </el-menu-item>
-
         <!-- V2.1 AI智能碳顾问 -->
         <el-menu-item index="/ai-carbon-advisor">
           <el-icon><Promotion /></el-icon>

@@ -252,7 +252,7 @@ async function loadProductData(productId) {
     const apiData = await res.json()
 
     // 数据格式转换 snake_case → camelCase
-    const data = {
+    let data = {
       total: apiData.total_footprint || 0,
       stages: (apiData.chain_nodes || []).map(node => ({
         id: node.id || 0,

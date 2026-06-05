@@ -29,7 +29,6 @@ const routes = [
   { path: '/ocr', name: 'OCRUpload', component: OCRUpload },
   { path: '/company', name: 'CompanyManage', component: CompanyManage },
   { path: '/report', name: 'CarbonReport', component: CarbonReport },
-  { path: '/ai-advisor', name: 'AIAdvisor', component: AIAdvisor },
   { path: '/ai-carbon-advisor', name: 'AICarbonAdvisor', component: AICarbonAdvisor },
   { path: '/carbon-asset', name: 'CarbonAsset', component: CarbonAsset },
   { path: '/optimization', name: 'Optimization', component: Optimization },

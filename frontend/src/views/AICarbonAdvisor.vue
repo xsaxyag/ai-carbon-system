@@ -170,7 +170,7 @@ const sendMessage = async () => {
 
     messages.value.push({
       role: 'assistant',
-      content: res.data.response || res.data.message || '抱歉，我无法理解您的问题。'
+      content: res.data.reply || '抱歉，我无法理解您的问题。'
     })
   } catch (error) {
     ElMessage.error('请求失败: ' + (error.response?.data?.detail || error.message))

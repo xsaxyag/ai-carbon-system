@@ -40,6 +40,12 @@ class LCA建模Request(BaseModel):
     transport_distance: Optional[float] = None
 
 
+class OneCommandRequest(BaseModel):
+    """一句话指令请求"""
+    command: str
+    params: Optional[Dict[str, Any]] = None
+
+
 # === 意图识别 ===
 
 INTENT_PATTERNS = {
@@ -410,7 +416,7 @@ async def get_quick_commands():
 
 
 @router.post("/one-command")
-async def execute_one_command(command: str, params: Optional[Dict[str, Any]] = None):
+async def execute_one_command(request: OneCommandRequest):
     """
     一句话指令执行入口
     示例：
@@ -419,6 +425,8 @@ async def execute_one_command(command: str, params: Optional[Dict[str, Any]] = N
     - "分析企业排放"
     - "如何降低碳排放"
     """
+    command = request.command
+    params = request.params
     intent = detect_intent(command)
     
     # 根据意图执行对应操作
