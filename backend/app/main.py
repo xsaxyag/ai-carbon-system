@@ -18,6 +18,7 @@ from app.api.report import router as report_router
 from app.api import optimization, measures, alert, auth, backup, footprint, validation, wizard
 from app.api import carbon_3d, footprint_3d, digital_twin, supply_chain, energy_synergy
 from app.api import carbon_asset, ai_carbon_advisor
+from app.api import site_map
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -84,6 +85,8 @@ app.include_router(energy_synergy.router, prefix="/api/v1/energy-synergy", tags=
 # V2.0 高级功能模块
 app.include_router(carbon_asset.router, prefix="/api/v1/carbon-asset", tags=["Carbon Asset Management"])
 app.include_router(ai_carbon_advisor.router, prefix="/api/v1/ai-advisor-v2", tags=["AI Carbon Advisor"])
+# V2.1 园区地图3D模块
+app.include_router(site_map.router, tags=["园区地图3D"])
 
 @app.get("/")
 @limiter.limit("60/minute")

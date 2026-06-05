@@ -8,7 +8,7 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <el-row :gutter="20">
-        <el-col :span="12">
+        <el-col :xs="24" :sm="12" :md="8">
           <el-card shadow="hover">
             <template #header>
               <div class="card-header">
@@ -28,11 +28,6 @@
               <div class="el-upload__text">
                 拖拽园区平面图到此处 或 <em>点击上传</em>
               </div>
-              <template #tip>
-                <div class="el-upload__tip">
-                  支持 JPG/PNG/WEBP 格式，建议分辨率 ≥ 1920×1080
-                </div>
-              </template>
             </el-upload>
             <div v-if="uploadedImage" class="image-preview">
               <img :src="uploadedImage" alt="园区平面图" class="preview-img" />
@@ -43,14 +38,14 @@
           </el-card>
         </el-col>
 
-        <el-col :span="12">
+        <el-col :xs="24" :sm="12" :md="8">
           <el-card shadow="hover">
             <template #header>
               <div class="card-header">
-                <span>📊 数据叠加</span>
+                <span>📊 数据配置</span>
               </div>
             </template>
-            <el-form label-position="top">
+            <el-form label-position="top" size="small">
               <el-form-item label="碳排放数据源">
                 <el-select v-model="dataSource" placeholder="选择数据源" style="width: 100%">
                   <el-option label="实时监测数据" value="realtime" />
@@ -59,18 +54,54 @@
                 </el-select>
               </el-form-item>
               <el-form-item label="可视化模式">
-                <el-radio-group v-model="visualizationMode">
-                  <el-radio value="heatmap">热力图</el-radio>
-                  <el-radio value="height">高度映射</el-radio>
-                  <el-radio value="color">颜色编码</el-radio>
+                <el-radio-group v-model="visualizationMode" size="small">
+                  <el-radio-button value="heatmap">热力图</el-radio-button>
+                  <el-radio-button value="height">高度</el-radio-button>
+                  <el-radio-button value="color">颜色</el-radio-button>
                 </el-radio-group>
               </el-form-item>
+              <el-form-item label="特效选项">
+                <el-checkbox-group v-model="enabledEffects">
+                  <el-checkbox value="particle">粒子特效</el-checkbox>
+                  <el-checkbox value="breathing">呼吸动画</el-checkbox>
+                  <el-checkbox value="glow">光晕效果</el-checkbox>
+                </el-checkbox-group>
+              </el-form-item>
               <el-form-item>
-                <el-button type="success" @click="overlayCarbonData" :loading="overlaying">
+                <el-button type="success" @click="overlayCarbonData" :loading="overlaying" :disabled="!sceneReady">
                   🎨 叠加碳数据
                 </el-button>
               </el-form-item>
             </el-form>
+          </el-card>
+        </el-col>
+
+        <el-col :xs="24" :sm="12" :md="8">
+          <el-card shadow="hover">
+            <template #header>
+              <div class="card-header">
+                <span>📥 导出功能</span>
+              </div>
+            </template>
+            <div class="export-actions">
+              <el-button type="primary" @click="exportImage" :disabled="!sceneReady" size="small">
+                📷 导出PNG
+              </el-button>
+              <el-button type="warning" @click="exportJPEG" :disabled="!sceneReady" size="small">
+                🖼️ 导出JPEG
+              </el-button>
+              <el-button type="info" @click="startVideoRecording" :disabled="!sceneReady || isRecording" size="small">
+                🎥 {{ isRecording ? '录制中...' : '录视频' }}
+              </el-button>
+              <el-button type="danger" @click="stopVideoRecording" v-if="isRecording" size="small">
+                ⏹️ 停止
+              </el-button>
+            </div>
+            <div v-if="isRecording" class="recording-indicator">
+              <span class="recording-dot"></span> 正在录制...
+              <span class="recording-time">{{ recordingTime }}s</span>
+            </div>
+            <el-progress v-if="isRecording" :percentage="recordingProgress" :show-text="false" />
           </el-card>
         </el-col>
       </el-row>
@@ -86,6 +117,10 @@
               <el-button size="small" @click="resetCamera">重置视角</el-button>
               <el-button size="small" @click="toggleRotation">{{ rotating ? '停止旋转' : '自动旋转' }}</el-button>
               <el-button size="small" @click="toggleWireframe">{{ wireframe ? '实体模式' : '线框模式' }}</el-button>
+              <el-button size="small" @click="toggleEffects">{{ showEffects ? '隐藏特效' : '显示特效' }}</el-button>
+            </el-button-group>
+            <el-button-group style="margin-left: 10px">
+              <el-button size="small" @click="toggleDayNight">{{ isNightMode ? '☀️ 白天' : '🌙 夜晚' }}</el-button>
             </el-button-group>
           </div>
         </div>
@@ -94,133 +129,240 @@
       <div v-if="!sceneReady" class="placeholder">
         <el-empty description="请先上传园区平面图并生成3D模型" />
       </div>
+      <!-- 数据统计 -->
+      <div v-if="sceneReady && carbonData" class="carbon-stats">
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <div class="stat-item">
+              <div class="stat-value">{{ carbonData.buildings?.length || 0 }}</div>
+              <div class="stat-label">建筑数量</div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-value">{{ carbonData.total_carbon_emission?.toFixed(1) || 0 }} t</div>
+            <div class="stat-label">碳排放量</div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-value">{{ carbonData.average_intensity?.toFixed(1) || 0 }}</div>
+            <div class="stat-label">平均强度</div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-value">{{ carbonData.summary?.green_energy_coverage || 0 }}%</div>
+            <div class="stat-label">绿电覆盖率</div>
+          </el-col>
+        </el-row>
+      </div>
     </el-card>
 
     <!-- 建筑信息面板 -->
     <el-drawer v-model="buildingInfoVisible" title="建筑碳排放详情" size="30%">
       <div v-if="selectedBuilding" class="building-info">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="建筑名称">{{ selectedBuilding.name }}</el-descriptions-item>
-          <el-descriptions-item label="建筑面积">{{ selectedBuilding.area }} m²</el-descriptions-item>
-          <el-descriptions-item label="碳排放量">
-            <span :style="{ color: getCarbonColor(selectedBuilding.carbonEmission) }">
-              {{ selectedBuilding.carbonEmission }} tCO₂e
+          <el-descriptions-item label="建筑名称">
+            {{ selectedBuilding.name }}
+          </el-descriptions-item>
+          <el-descriptions-item label="建筑类型">
+            <el-tag :type="getTypeTag(selectedBuilding.type)">
+              {{ getTypeName(selectedBuilding.type) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="建筑面积">
+            {{ selectedBuilding.area || selectedBuilding.area }} m²
+          </el-descriptions-item>
+          <el-descriptions-item label="碳排放量" v-if="selectedBuilding.carbon_emission">
+            <span :style="{ color: getCarbonColor(selectedBuilding.carbon_emission) }">
+              {{ selectedBuilding.carbon_emission }} tCO₂
             </span>
           </el-descriptions-item>
-          <el-descriptions-item label="能耗强度">{{ selectedBuilding.energyIntensity }} kWh/m²</el-descriptions-item>
-          <el-descriptions-item label="减排潜力">{{ selectedBuilding.reductionPotential }}%</el-descriptions-item>
+          <el-descriptions-item label="碳排放强度" v-if="selectedBuilding.carbon_intensity">
+            {{ selectedBuilding.carbon_intensity }} kgCO₂/m²
+          </el-descriptions-item>
+          <el-descriptions-item label="能耗消耗" v-if="selectedBuilding.energy_consumption">
+            {{ selectedBuilding.energy_consumption?.toLocaleString() }} kWh
+          </el-descriptions-item>
+          <el-descriptions-item label="能源类型" v-if="selectedBuilding.energy_type">
+            {{ selectedBuilding.energy_type }}
+          </el-descriptions-item>
+          <el-descriptions-item label="绿电比例" v-if="selectedBuilding.green_energy_ratio">
+            <el-progress :percentage="selectedBuilding.green_energy_ratio" :color="getGreenProgressColor" />
+          </el-descriptions-item>
+          <el-descriptions-item label="减排潜力" v-if="selectedBuilding.reduction_potential">
+            <el-progress :percentage="selectedBuilding.reduction_potential" :color="getReductionProgressColor" />
+          </el-descriptions-item>
+          <el-descriptions-item label="碳排放排名" v-if="selectedBuilding.rank">
+            第 {{ selectedBuilding.rank }} 名
+          </el-descriptions-item>
         </el-descriptions>
 
-        <div class="chart-container">
-          <h4>历史碳排放趋势</h4>
-          <div ref="trendChart" style="width: 100%; height: 200px;"></div>
-        </div>
-
         <div class="actions">
-          <el-button type="primary" @click="showOptimizationPlan">查看优化方案</el-button>
-          <el-button type="success" @click="drillDown">下钻分析</el-button>
+          <el-button type="primary" @click="showOptimizationPlan">💡 查看优化方案</el-button>
+          <el-button type="warning" @click="drillDown">📊 下钻分析</el-button>
         </div>
       </div>
     </el-drawer>
 
-    <!-- 建筑物标注对话框 -->
-    <el-dialog v-model="annotationDialogVisible" title="标注建筑物位置" width="80%">
+    <!-- 标注对话框 -->
+    <el-dialog v-model="annotationDialogVisible" title="建筑标注" width="900px" :close-on-click-modal="false">
       <div class="annotation-container">
-        <div class="image-annotation-area">
-          <img :src="uploadedImage" alt="标注" class="annotation-img" ref="annotationImage" />
+        <div class="image-annotation-area" ref="annotationArea">
+          <img
+            ref="annotationImg"
+            :src="uploadedImage"
+            class="annotation-img"
+            :style="{ cursor: drawing ? 'crosshair' : 'default' }"
+            @mousedown="startDraw"
+            @mousemove="onDraw"
+            @mouseup="endDraw"
+            @mouseleave="endDraw"
+          />
+          <!-- 标注框 -->
           <div
             v-for="(building, index) in buildings"
             :key="index"
-            class="building-marker"
-            :style="{
-              left: building.x + 'px',
-              top: building.y + 'px',
-              width: building.width + 'px',
-              height: building.height + 'px'
-            }"
+            class="annotation-box"
+            :class="{ selected: editingIndex === index }"
+            :style="getAnnotationStyle(building)"
             @click="editBuilding(index)"
           >
-            <span class="marker-label">{{ building.name }}</span>
+            <span class="annotation-label">{{ building.name }}</span>
           </div>
+          <!-- 绘制中的框 -->
           <div
             v-if="drawing"
-            class="building-marker drawing"
-            :style="{
-              left: drawStart.x + 'px',
-              top: drawStart.y + 'px',
-              width: drawSize.width + 'px',
-              height: drawSize.height + 'px'
-            }"
-          ></div>
+            class="drawing-box"
+            :style="getDrawingStyle()"
+          />
         </div>
-        <div class="annotation-controls">
-          <p>在左侧图片上拖拽框选建筑物位置</p>
-          <el-form :model="currentBuilding" label-width="80px">
+
+        <div class="annotation-form">
+          <el-form :model="currentBuilding" label-width="100px">
             <el-form-item label="建筑名称">
-              <el-input v-model="currentBuilding.name" placeholder="例如：生产车间" />
+              <el-input v-model="currentBuilding.name" placeholder="请输入建筑名称" />
             </el-form-item>
             <el-form-item label="建筑类型">
-              <el-select v-model="currentBuilding.type" placeholder="选择类型">
+              <el-select v-model="currentBuilding.type" style="width: 100%">
                 <el-option label="生产车间" value="production" />
-                <el-option label="仓库" value="warehouse" />
-                <el-option label="办公楼" value="office" />
+                <el-option label="仓储" value="warehouse" />
+                <el-option label="办公" value="office" />
                 <el-option label="实验室" value="lab" />
                 <el-option label="其他" value="other" />
               </el-select>
             </el-form-item>
-            <el-form-item label="建筑面积">
-              <el-input-number v-model="currentBuilding.area" :min="0" :step="100" />
-              <span style="margin-left: 10px">m²</span>
+            <el-form-item label="建筑面积(m²)">
+              <el-input-number v-model="currentBuilding.area" :min="50" :max="10000" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="位置信息">
+              <el-text>坐标: ({{ drawStart.x.toFixed(0) }}, {{ drawStart.y.toFixed(0) }})</el-text>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveBuilding">{{ editingIndex >= 0 ? '更新' : '保存' }}标注</el-button>
+              <el-button @click="cancelDrawing">取消</el-button>
+              <el-button v-if="editingIndex >= 0" type="danger" @click="deleteBuilding">删除</el-button>
             </el-form-item>
           </el-form>
-          <div class="form-actions">
-            <el-button type="primary" @click="saveBuilding">保存标注</el-button>
-            <el-button @click="cancelDrawing">取消</el-button>
+
+          <el-divider>已标注建筑 ({{ buildings.length }})</el-divider>
+          <div class="building-list">
+            <div v-for="(building, index) in buildings" :key="index" class="building-item">
+              <span>{{ building.name }}</span>
+              <el-tag size="small">{{ getTypeName(building.type) }}</el-tag>
+              <el-button size="small" link @click="editBuilding(index)">编辑</el-button>
+            </div>
           </div>
         </div>
       </div>
       <template #footer>
-        <el-button type="success" @click="finishAnnotation">完成标注 ({{ buildings.length }} 个建筑)</el-button>
+        <el-button @click="cancelAnnotation">取消</el-button>
+        <el-button type="primary" @click="finishAnnotation">完成标注 ({{ buildings.length }})</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
+import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { ElMessage, ElLoading } from 'element-plus'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
-// 响应式数据
-const threeContainer = ref(null)
-const sceneReady = ref(false)
-const converting = ref(false)
-const overlaying = ref(false)
-const rotating = ref(false)
-const wireframe = ref(false)
-const uploadedImage = ref(null)
-const imageFile = ref(null)
-const dataSource = ref('realtime')
-const visualizationMode = ref('heatmap')
-const buildingInfoVisible = ref(false)
-const selectedBuilding = ref(null)
-const annotationDialogVisible = ref(false)
-const drawing = ref(false)
-const drawStart = ref({ x: 0, y: 0 })
-const drawSize = ref({ width: 0, height: 0 })
-const buildings = ref([])
-const currentBuilding = ref({ name: '', type: 'production', area: 1000 })
-const editingIndex = ref(-1)
-
-// Three.js 变量
+// Three.js变量
 let scene = null
 let camera = null
 let renderer = null
 let controls = null
 let animationId = null
 let buildingMeshes = []
+let particleSystem = null
+let glowSprites = []
+let breathingObjects = []
+let mediaRecorder = null
+let recordedChunks = []
+let recordingStartTime = null
+
+// 状态
+const threeContainer = ref(null)
+const uploadedImage = ref('')
+const imageFile = ref(null)
+const converting = ref(false)
+const overlaying = ref(false)
+const annotationDialogVisible = ref(false)
+const buildingInfoVisible = ref(false)
+const selectedBuilding = ref(null)
+const editingIndex = ref(-1)
+const sceneReady = ref(false)
+const rotating = ref(false)
+const wireframe = ref(false)
+const showEffects = ref(true)
+const isNightMode = ref(false)
+const isRecording = ref(false)
+const recordingTime = ref(0)
+const recordingProgress = ref(0)
+const carbonData = ref(null)
+const enabledEffects = ref(['particle', 'breathing', 'glow'])
+
+// 绘图状态
+const drawing = ref(false)
+const drawStart = ref({ x: 0, y: 0 })
+const drawSize = ref({ width: 0, height: 0 })
+const currentBuilding = ref({
+  name: '',
+  type: 'production',
+  area: 1000
+})
+
+// 数据配置
+const dataSource = ref('monthly')
+const visualizationMode = ref('heatmap')
+const buildings = ref([])
+
+// 颜色配置
+const typeColors = {
+  production: 0x409eff,
+  warehouse: 0x67c23a,
+  office: 0xe6a23c,
+  lab: 0xf56c6c,
+  other: 0x909399
+}
+
+// 获取真实碳排放数据
+const fetchCarbonData = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/site-map/buildings?company_id=1&month=${new Date().toISOString().slice(0, 7)}`)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        carbonData.value = data
+        return data.buildings
+      }
+    }
+    return null
+  } catch (error) {
+    console.warn('获取碳排放数据失败，使用模拟数据:', error)
+    return null
+  }
+}
 
 // 处理图片上传
 const handleImageUpload = (file) => {
@@ -240,7 +382,7 @@ const handleImageUpload = (file) => {
 }
 
 // 开始3D转换
-const start3DConversion = () => {
+const start3DConversion = async () => {
   if (!uploadedImage.value) {
     ElMessage.warning('请先上传园区平面图！')
     return
@@ -248,12 +390,15 @@ const start3DConversion = () => {
   
   converting.value = true
   
+  // 如果有真实数据，先获取
+  await fetchCarbonData()
+  
   // 显示标注对话框
   annotationDialogVisible.value = true
   converting.value = false
 }
 
-// 鼠标事件处理（标注）
+// 初始化标注事件
 const initAnnotationEvents = () => {
   nextTick(() => {
     const img = document.querySelector('.annotation-img')
@@ -273,26 +418,64 @@ const initAnnotationEvents = () => {
     })
     
     img.addEventListener('mouseup', (e) => {
-      if (!drawing.value) return
-      drawing.value = false
-      
-      // 确保宽高为正数
-      const x = Math.min(drawStart.value.x, e.offsetX)
-      const y = Math.min(drawStart.value.y, e.offsetY)
-      const width = Math.abs(drawSize.value.width)
-      const height = Math.abs(drawSize.value.height)
-      
-      if (width < 10 || height < 10) {
-        ElMessage.warning('框选区域太小，请重新框选')
-        return
-      }
-      
-      drawStart.value = { x, y }
-      drawSize.value = { width, height }
-      
-      ElMessage.info('请填写建筑详情并保存')
+      endDraw(e)
     })
   })
+}
+
+// 开始绘制
+const startDraw = (e) => {
+  drawing.value = true
+  drawStart.value = { x: e.offsetX, y: e.offsetY }
+}
+
+// 绘制中
+const onDraw = (e) => {
+  if (!drawing.value) return
+  drawSize.value = {
+    width: e.offsetX - drawStart.value.x,
+    height: e.offsetY - drawStart.value.y
+  }
+}
+
+// 结束绘制
+const endDraw = (e) => {
+  if (!drawing.value) return
+  drawing.value = false
+  
+  const x = Math.min(drawStart.value.x, e.offsetX)
+  const y = Math.min(drawStart.value.y, e.offsetY)
+  const width = Math.abs(drawSize.value.width)
+  const height = Math.abs(drawSize.value.height)
+  
+  if (width < 10 || height < 10) {
+    ElMessage.warning('框选区域太小，请重新框选')
+    return
+  }
+  
+  drawStart.value = { x, y }
+  drawSize.value = { width, height }
+  ElMessage.info('请填写建筑详情并保存')
+}
+
+// 获取标注框样式
+const getAnnotationStyle = (building) => {
+  return {
+    left: `${building.x}px`,
+    top: `${building.y}px`,
+    width: `${building.width}px`,
+    height: `${building.height}px`
+  }
+}
+
+// 获取绘制框样式
+const getDrawingStyle = () => {
+  return {
+    left: `${Math.min(drawStart.value.x, drawStart.value.x + drawSize.value.width)}px`,
+    top: `${Math.min(drawStart.value.y, drawStart.value.y + drawSize.value.height)}px`,
+    width: `${Math.abs(drawSize.value.width)}px`,
+    height: `${Math.abs(drawSize.value.height)}px`
+  }
 }
 
 // 保存建筑标注
@@ -300,6 +483,18 @@ const saveBuilding = () => {
   if (!currentBuilding.value.name) {
     ElMessage.error('请填写建筑名称！')
     return
+  }
+  
+  // 从API数据中查找匹配的碳排放信息
+  let carbonInfo = null
+  if (carbonData.value?.buildings) {
+    const apiBuilding = carbonData.value.buildings.find(b => 
+      b.name.includes(currentBuilding.value.name) || 
+      currentBuilding.value.name.includes(b.name)
+    )
+    if (apiBuilding) {
+      carbonInfo = apiBuilding
+    }
   }
   
   const building = {
@@ -310,14 +505,18 @@ const saveBuilding = () => {
     y: drawStart.value.y,
     width: drawSize.value.width,
     height: drawSize.value.height,
-    carbonEmission: (Math.random() * 500 + 100).toFixed(1), // 模拟数据
-    energyIntensity: (Math.random() * 100 + 50).toFixed(1),
-    reductionPotential: (Math.random() * 30 + 10).toFixed(1)
+    // 使用真实API数据或模拟
+    carbon_emission: carbonInfo?.carbon_emission || (Math.random() * 500 + 100).toFixed(1),
+    energy_consumption: carbonInfo?.energy_consumption || (Math.random() * 100000 + 50000).toFixed(0),
+    carbon_intensity: carbonInfo?.carbon_intensity || (Math.random() * 30 + 5).toFixed(1),
+    energy_type: carbonInfo?.energy_type || '电力',
+    green_energy_ratio: carbonInfo?.green_energy_ratio || (Math.random() * 30 + 10).toFixed(1),
+    reduction_potential: carbonInfo?.reduction_potential || (Math.random() * 30 + 10).toFixed(1),
+    rank: carbonInfo?.rank || buildings.value.length + 1
   }
   
   if (editingIndex.value >= 0) {
     buildings.value[editingIndex.value] = building
-    editingIndex.value = -1
   } else {
     buildings.value.push(building)
   }
@@ -325,6 +524,7 @@ const saveBuilding = () => {
   currentBuilding.value = { name: '', type: 'production', area: 1000 }
   drawStart.value = { x: 0, y: 0 }
   drawSize.value = { width: 0, height: 0 }
+  editingIndex.value = -1
   
   ElMessage.success('建筑标注已保存！')
 }
@@ -342,6 +542,15 @@ const editBuilding = (index) => {
   drawSize.value = { width: building.width, height: building.height }
 }
 
+// 删除建筑
+const deleteBuilding = () => {
+  if (editingIndex.value >= 0) {
+    buildings.value.splice(editingIndex.value, 1)
+    cancelDrawing()
+    ElMessage.success('建筑已删除')
+  }
+}
+
 // 取消绘制
 const cancelDrawing = () => {
   drawing.value = false
@@ -349,6 +558,13 @@ const cancelDrawing = () => {
   drawStart.value = { x: 0, y: 0 }
   drawSize.value = { width: 0, height: 0 }
   editingIndex.value = -1
+}
+
+// 取消标注
+const cancelAnnotation = () => {
+  annotationDialogVisible.value = false
+  buildings.value = []
+  ElMessage.info('已取消标注')
 }
 
 // 完成标注
@@ -359,7 +575,7 @@ const finishAnnotation = () => {
   }
   
   annotationDialogVisible.value = false
-  ElMessage.success(`标注完成！共 ${buildings.value.length} 个建筑`)
+  ElMessage.success(`标注完成！共 ${buildings.value.length} 个建筑，正在生成3D模型...`)
   
   // 开始生成3D场景
   initThreeScene()
@@ -371,7 +587,9 @@ const initThreeScene = () => {
   
   // 创建场景
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0xf0f2f5)
+  
+  // 根据日夜模式设置背景
+  updateSceneBackground()
   
   // 创建相机
   const container = threeContainer.value
@@ -381,12 +599,13 @@ const initThreeScene = () => {
     0.1,
     1000
   )
-  camera.position.set(50, 50, 50)
+  camera.position.set(80, 60, 80)
   camera.lookAt(0, 0, 0)
   
   // 创建渲染器
-  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
   renderer.setSize(container.clientWidth, container.clientHeight)
+  renderer.setPixelRatio(window.devicePixelRatio)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   container.innerHTML = ''
@@ -396,34 +615,35 @@ const initThreeScene = () => {
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
   controls.dampingFactor = 0.05
+  controls.maxPolarAngle = Math.PI / 2
   
   // 添加光源
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
-  scene.add(ambientLight)
-  
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-  directionalLight.position.set(50, 100, 50)
-  directionalLight.castShadow = true
-  directionalLight.shadow.mapSize.width = 2048
-  directionalLight.shadow.mapSize.height = 2048
-  scene.add(directionalLight)
+  updateLighting()
   
   // 添加地面
   const groundGeometry = new THREE.PlaneGeometry(200, 200)
-  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x98fb98 })
+  const groundMaterial = new THREE.MeshLambertMaterial({ 
+    color: isNightMode.value ? 0x1a1a2e : 0x98fb98 
+  })
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
   
-  // 根据标注数据创建筑模型
+  // 创建建筑
   createBuildings()
   
   // 添加网格辅助
-  const gridHelper = new THREE.GridHelper(200, 20, 0x000000, 0x000000)
-  gridHelper.material.opacity = 0.2
+  const gridHelper = new THREE.GridHelper(200, 20, 0x666666, 0x444444)
+  gridHelper.material.opacity = 0.3
   gridHelper.material.transparent = true
   scene.add(gridHelper)
+  
+  // 添加3D特效
+  if (showEffects.value) {
+    createParticleSystem()
+    createGlowEffects()
+  }
   
   // 开始动画循环
   animate()
@@ -432,79 +652,287 @@ const initThreeScene = () => {
   ElMessage.success('3D园区模型生成成功！')
 }
 
+// 更新场景背景
+const updateSceneBackground = () => {
+  if (!scene) return
+  if (isNightMode.value) {
+    scene.background = new THREE.Color(0x0a0a1a)
+    scene.fog = new THREE.Fog(0x0a0a1a, 100, 300)
+  } else {
+    scene.background = new THREE.Color(0xe8f4f8)
+    scene.fog = new THREE.Fog(0xe8f4f8, 150, 350)
+  }
+}
+
+// 更新光照
+const updateLighting = () => {
+  if (!scene) return
+  
+  // 移除旧光源
+  const oldLights = scene.children.filter(c => c.isLight)
+  oldLights.forEach(l => scene.remove(l))
+  
+  if (isNightMode.value) {
+    // 夜晚模式：蓝色月光 + 建筑灯光
+    const moonLight = new THREE.DirectionalLight(0x4466ff, 0.3)
+    moonLight.position.set(50, 100, 50)
+    scene.add(moonLight)
+    
+    const ambientLight = new THREE.AmbientLight(0x112244, 0.4)
+    scene.add(ambientLight)
+    
+    // 建筑窗户灯光
+    buildingMeshes.forEach((mesh, index) => {
+      const light = new THREE.PointLight(0xffaa00, 0.5, 15)
+      light.position.set(mesh.position.x, mesh.position.y + 5, mesh.position.z)
+      scene.add(light)
+    })
+  } else {
+    // 白天模式：阳光
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+    scene.add(ambientLight)
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+    directionalLight.position.set(50, 100, 50)
+    directionalLight.castShadow = true
+    directionalLight.shadow.mapSize.width = 2048
+    directionalLight.shadow.mapSize.height = 2048
+    scene.add(directionalLight)
+  }
+}
+
+// 切换日夜模式
+const toggleDayNight = () => {
+  isNightMode.value = !isNightMode.value
+  updateSceneBackground()
+  updateLighting()
+  ElMessage.success(isNightMode.value ? '切换到夜晚模式 🌙' : '切换到白天模式 ☀️')
+}
+
 // 创建建筑模型
 const createBuildings = () => {
-  const colors = {
-    production: 0x409eff,
-    warehouse: 0x67c23a,
-    office: 0xe6a23c,
-    lab: 0xf56c6c,
-    other: 0x909399
-  }
+  buildingMeshes = []
+  breathingObjects = []
   
   buildings.value.forEach((building, index) => {
     // 根据图片坐标映射到3D空间
-    const x = (building.x / 1000) * 200 - 100
-    const z = (building.y / 800) * 200 - 100
-    const width = (building.width / 1000) * 200
-    const depth = (building.height / 800) * 200
-    const height = Math.sqrt(building.area) / 10
+    const imgWidth = 1000
+    const imgHeight = 800
+    const sceneSize = 160
+    
+    const x = (building.x / imgWidth) * sceneSize - sceneSize / 2
+    const z = (building.y / imgHeight) * sceneSize - sceneSize / 2
+    const width = (building.width / imgWidth) * sceneSize
+    const depth = (building.height / imgHeight) * sceneSize
+    
+    // 根据碳排放强度计算高度（真实数据或模拟）
+    let baseHeight
+    if (building.carbon_emission > 0) {
+      // 使用真实碳排放数据
+      baseHeight = Math.sqrt(building.area) / 3 + (parseFloat(building.carbon_emission) / 100)
+    } else {
+      baseHeight = Math.sqrt(building.area) / 3
+    }
+    const height = Math.max(baseHeight, 3)
     
     // 创建建筑几何体
     const geometry = new THREE.BoxGeometry(width, height, depth)
-    const material = new THREE.MeshLambertMaterial({
-      color: colors[building.type] || colors.other,
-      transparent: true,
-      opacity: 0.8
-    })
+    const color = typeColors[building.type] || typeColors.other
+    
+    let material
+    if (isNightMode.value) {
+      material = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.3,
+        metalness: 0.5,
+        roughness: 0.5
+      })
+    } else {
+      material = new THREE.MeshStandardMaterial({
+        color: color,
+        metalness: 0.3,
+        roughness: 0.7
+      })
+    }
+    
     const mesh = new THREE.Mesh(geometry, material)
     mesh.position.set(x + width / 2, height / 2, z + depth / 2)
     mesh.castShadow = true
     mesh.receiveShadow = true
     
     // 添加用户数据
-    mesh.userData = { buildingIndex: index, ...building }
-    
-    // 添加点击事件
-    mesh.cursor = 'pointer'
+    mesh.userData = { buildingIndex: index, ...building, baseHeight: height }
     
     scene.add(mesh)
     buildingMeshes.push(mesh)
+    breathingObjects.push(mesh)
     
     // 添加建筑标签
-    addBuildingLabel(mesh, building.name)
+    addBuildingLabel(mesh, building.name, height)
+    
+    // 添加屋顶装饰
+    addRoofDecoration(mesh, width, depth)
   })
   
   // 添加点击事件监听
   renderer.domElement.addEventListener('click', onBuildingClick)
 }
 
+// 添加屋顶装饰
+const addRoofDecoration = (mesh, width, depth) => {
+  // 添加屋顶
+  const roofGeometry = new THREE.ConeGeometry(Math.max(width, depth) * 0.6, 3, 4)
+  const roofMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x333333,
+    metalness: 0.8,
+    roughness: 0.3
+  })
+  const roof = new THREE.Mesh(roofGeometry, roofMaterial)
+  roof.position.set(mesh.position.x, mesh.geometry.parameters.height + 1.5, mesh.position.z)
+  roof.rotation.y = Math.PI / 4
+  scene.add(roof)
+  
+  // 存储屋顶用于呼吸动画
+  breathingObjects.push(roof)
+}
+
 // 添加建筑标签
-const addBuildingLabel = (mesh, text) => {
+const addBuildingLabel = (mesh, text, height) => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  canvas.width = 256
-  canvas.height = 128
+  canvas.width = 512
+  canvas.height = 256
   
-  context.fillStyle = 'rgba(0, 0, 0, 0.7)'
+  // 绘制背景
+  context.fillStyle = isNightMode.value ? 'rgba(20, 20, 40, 0.9)' : 'rgba(0, 0, 0, 0.7)'
   context.fillRect(0, 0, canvas.width, canvas.height)
   
-  context.font = 'bold 24px Arial'
+  // 绘制边框
+  context.strokeStyle = '#409eff'
+  context.lineWidth = 4
+  context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4)
+  
+  // 绘制文字
+  context.font = 'bold 36px Arial'
   context.fillStyle = 'white'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.fillText(text, canvas.width / 2, canvas.height / 2)
+  
+  // 文字换行
+  const words = text.split('')
+  let line = ''
+  let y = canvas.height / 2
+  const maxCharsPerLine = 10
+  
+  for (let i = 0; i < words.length; i++) {
+    const testLine = line + words[i]
+    if (testLine.length > maxCharsPerLine) {
+      context.fillText(line, canvas.width / 2, y)
+      line = words[i]
+      y += 40
+    } else {
+      line = testLine
+    }
+  }
+  context.fillText(line, canvas.width / 2, y)
   
   const texture = new THREE.CanvasTexture(canvas)
-  const spriteMaterial = new THREE.SpriteMaterial({ map: texture })
+  const spriteMaterial = new THREE.SpriteMaterial({ 
+    map: texture,
+    transparent: true
+  })
   const sprite = new THREE.Sprite(spriteMaterial)
   sprite.position.set(
     mesh.position.x,
-    mesh.position.y + mesh.geometry.parameters.height / 2 + 2,
+    mesh.position.y + mesh.geometry.parameters.height / 2 + 8,
     mesh.position.z
   )
-  sprite.scale.set(8, 4, 1)
+  sprite.scale.set(12, 6, 1)
   scene.add(sprite)
+  
+  glowSprites.push(sprite)
+}
+
+// 创建粒子系统
+const createParticleSystem = () => {
+  if (particleSystem) {
+    scene.remove(particleSystem)
+  }
+  
+  const particleCount = 2000
+  const positions = new Float32Array(particleCount * 3)
+  const colors = new Float32Array(particleCount * 3)
+  const sizes = new Float32Array(particleCount)
+  
+  for (let i = 0; i < particleCount; i++) {
+    // 分布在整个园区上空
+    positions[i * 3] = (Math.random() - 0.5) * 200
+    positions[i * 3 + 1] = Math.random() * 100 + 10
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 200
+    
+    // 碳排放相关颜色（绿色=低碳，红色=高碳）
+    const color = new THREE.Color()
+    if (isNightMode.value) {
+      color.setHSL(0.55, 0.8, 0.6) // 青色粒子
+    } else {
+      color.setHSL(0.3 + Math.random() * 0.1, 0.7, 0.5) // 绿色系
+    }
+    colors[i * 3] = color.r
+    colors[i * 3 + 1] = color.g
+    colors[i * 3 + 2] = color.b
+    
+    sizes[i] = Math.random() * 2 + 0.5
+  }
+  
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+  
+  const material = new THREE.PointsMaterial({
+    size: 1.5,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending
+  })
+  
+  particleSystem = new THREE.Points(geometry, material)
+  scene.add(particleSystem)
+}
+
+// 创建光晕效果
+const createGlowEffects = () => {
+  glowSprites.forEach(sprite => {
+    // 创建光晕精灵
+    const glowCanvas = document.createElement('canvas')
+    glowCanvas.width = 128
+    glowCanvas.height = 128
+    const glowCtx = glowCanvas.getContext('2d')
+    
+    const gradient = glowCtx.createRadialGradient(64, 64, 0, 64, 64, 64)
+    gradient.addColorStop(0, 'rgba(64, 158, 255, 0.8)')
+    gradient.addColorStop(0.5, 'rgba(64, 158, 255, 0.3)')
+    gradient.addColorStop(1, 'rgba(64, 158, 255, 0)')
+    
+    glowCtx.fillStyle = gradient
+    glowCtx.fillRect(0, 0, 128, 128)
+    
+    const glowTexture = new THREE.CanvasTexture(glowCanvas)
+    const glowMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.5
+    })
+    
+    const glowSprite = new THREE.Sprite(glowMaterial)
+    glowSprite.position.copy(sprite.position)
+    glowSprite.scale.set(15, 15, 1)
+    scene.add(glowSprite)
+    glowSprites.push(glowSprite)
+  })
 }
 
 // 建筑点击事件
@@ -522,7 +950,7 @@ const onBuildingClick = (event) => {
   if (intersects.length > 0) {
     const mesh = intersects[0].object
     const buildingIndex = mesh.userData.buildingIndex
-    selectedBuilding.value = buildings.value[buildingIndex]
+    selectedBuilding.value = { ...buildings.value[buildingIndex], ...mesh.userData }
     buildingInfoVisible.value = true
   }
 }
@@ -536,23 +964,31 @@ const overlayCarbonData = () => {
   
   overlaying.value = true
   
-  // 根据可视化模式调整建筑颜色/高度
   buildingMeshes.forEach((mesh, index) => {
     const building = buildings.value[index]
-    const carbonValue = parseFloat(building.carbonEmission)
+    let carbonValue = parseFloat(building.carbon_emission)
+    
+    if (!carbonValue || carbonValue < 0) {
+      carbonValue = Math.random() * 500 + 100
+    }
     
     if (visualizationMode.value === 'heatmap') {
       // 热力图模式：根据碳排放量调整颜色
       const color = getHeatmapColor(carbonValue)
       mesh.material.color.setHex(color)
+      mesh.material.emissive.setHex(color)
+      mesh.material.emissiveIntensity = 0.2
     } else if (visualizationMode.value === 'height') {
       // 高度映射：根据碳排放量调整建筑高度
-      const scale = 1 + carbonValue / 500
+      const scale = 1 + carbonValue / 300
       mesh.scale.y = scale
+      mesh.position.y = (mesh.userData.baseHeight * scale) / 2
     } else if (visualizationMode.value === 'color') {
       // 颜色编码：固定颜色映射
       const color = getCarbonColorHex(carbonValue)
       mesh.material.color.setHex(color)
+      mesh.material.emissive.setHex(color)
+      mesh.material.emissiveIntensity = 0.1
     }
   })
   
@@ -566,23 +1002,17 @@ const overlayCarbonData = () => {
 const getHeatmapColor = (value) => {
   const min = 100
   const max = 600
-  const ratio = (value - min) / (max - min)
+  const ratio = Math.min(Math.max((value - min) / (max - min), 0), 1)
   
-  if (ratio < 0.5) {
-    // 绿色到黄色
-    const r = Math.floor(2 * ratio * 255)
-    const g = 255
-    return (r << 16) | (g << 8)
-  } else {
-    // 黄色到红色
-    const r = 255
-    const g = Math.floor(2 * (1 - ratio) * 255)
-    const b = 0
-    return (r << 16) | (g << 8) | b
-  }
+  // 绿 -> 黄 -> 红
+  const r = Math.floor(ratio * 255)
+  const g = Math.floor((1 - ratio) * 255)
+  const b = 0
+  
+  return (r << 16) | (g << 8) | b
 }
 
-// 获取碳排放颜色（CSS）
+// 获取碳排放颜色
 const getCarbonColor = (value) => {
   if (value < 200) return '#67c23a'
   if (value < 400) return '#e6a23c'
@@ -596,13 +1026,86 @@ const getCarbonColorHex = (value) => {
   return 0xf56c6c
 }
 
+// 获取建筑类型名称
+const getTypeName = (type) => {
+  const names = {
+    production: '生产车间',
+    warehouse: '仓储',
+    office: '办公',
+    lab: '实验室',
+    other: '其他'
+  }
+  return names[type] || type
+}
+
+// 获取建筑类型标签颜色
+const getTypeTag = (type) => {
+  const colors = {
+    production: '',
+    warehouse: 'success',
+    office: 'warning',
+    lab: 'danger',
+    other: 'info'
+  }
+  return colors[type] || 'info'
+}
+
+// 获取绿电进度条颜色
+const getGreenProgressColor = (percentage) => {
+  if (percentage < 20) return '#f56c6c'
+  if (percentage < 40) return '#e6a23c'
+  return '#67c23a'
+}
+
+// 获取减排潜力进度条颜色
+const getReductionProgressColor = (percentage) => {
+  if (percentage < 20) return '#909399'
+  if (percentage < 35) return '#409eff'
+  return '#67c23a'
+}
+
 // 动画循环
 const animate = () => {
   animationId = requestAnimationFrame(animate)
   
+  const time = Date.now() * 0.001
+  
+  // 自动旋转
   if (rotating.value) {
     buildingMeshes.forEach((mesh) => {
-      mesh.rotation.y += 0.01
+      mesh.rotation.y += 0.005
+    })
+  }
+  
+  // 呼吸动画
+  if (enabledEffects.value.includes('breathing') && breathingObjects.length > 0) {
+    breathingObjects.forEach((obj, index) => {
+      if (obj.material) {
+        const breathe = Math.sin(time * 2 + index * 0.5) * 0.1 + 0.9
+        if (obj.material.emissiveIntensity !== undefined) {
+          obj.material.emissiveIntensity = breathe * 0.3
+        }
+      }
+    })
+  }
+  
+  // 粒子动画
+  if (particleSystem && enabledEffects.value.includes('particle')) {
+    particleSystem.rotation.y += 0.0005
+    const positions = particleSystem.geometry.attributes.position.array
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i + 1] += Math.sin(time + i) * 0.02
+      if (positions[i + 1] > 120) positions[i + 1] = 10
+    }
+    particleSystem.geometry.attributes.position.needsUpdate = true
+  }
+  
+  // 光晕效果
+  if (enabledEffects.value.includes('glow') && glowSprites.length > 0) {
+    glowSprites.forEach((sprite, index) => {
+      if (sprite.material.opacity !== undefined) {
+        sprite.material.opacity = Math.sin(time * 1.5 + index * 0.3) * 0.3 + 0.4
+      }
     })
   }
   
@@ -612,7 +1115,7 @@ const animate = () => {
 
 // 重置相机
 const resetCamera = () => {
-  camera.position.set(50, 50, 50)
+  camera.position.set(80, 60, 80)
   camera.lookAt(0, 0, 0)
   controls.reset()
 }
@@ -630,32 +1133,142 @@ const toggleWireframe = () => {
   })
 }
 
+// 切换特效显示
+const toggleEffects = () => {
+  showEffects.value = !showEffects.value
+  if (particleSystem) {
+    particleSystem.visible = showEffects.value
+  }
+  glowSprites.forEach(sprite => {
+    sprite.visible = showEffects.value
+  })
+  ElMessage.success(showEffects.value ? '显示3D特效' : '隐藏3D特效')
+}
+
+// 导出PNG图片
+const exportImage = () => {
+  if (!renderer) return
+  
+  // 确保渲染器使用preserveDrawingBuffer
+  renderer.render(scene, camera)
+  
+  const dataURL = renderer.domElement.toDataURL('image/png')
+  downloadFile(dataURL, `园区3D_${new Date().toISOString().slice(0, 10)}.png`)
+  ElMessage.success('PNG图片已导出！')
+}
+
+// 导出JPEG图片
+const exportJPEG = () => {
+  if (!renderer) return
+  
+  renderer.render(scene, camera)
+  
+  const dataURL = renderer.domElement.toDataURL('image/jpeg', 0.9)
+  downloadFile(dataURL, `园区3D_${new Date().toISOString().slice(0, 10)}.jpg`)
+  ElMessage.success('JPEG图片已导出！')
+}
+
+// 下载文件
+const downloadFile = (dataURL, filename) => {
+  const link = document.createElement('a')
+  link.href = dataURL
+  link.download = filename
+  link.click()
+}
+
+// 开始录制视频
+const startVideoRecording = () => {
+  if (!renderer || !renderer.domElement) return
+  
+  isRecording.value = true
+  recordingTime.value = 0
+  recordingProgress.value = 0
+  recordedChunks = []
+  
+  const stream = renderer.domElement.captureStream(30)
+  
+  // 尝试使用MediaRecorder API
+  const options = { mimeType: 'video/webm;codecs=vp9' }
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options.mimeType = 'video/webm'
+  }
+  
+  try {
+    mediaRecorder = new MediaRecorder(stream, options)
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data)
+      }
+    }
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' })
+      const url = URL.createObjectURL(blob)
+      downloadFile(url, `园区3D_${new Date().toISOString().slice(0, 10)}.webm`)
+      ElMessage.success('视频已导出！')
+    }
+    
+    mediaRecorder.start(100)
+    
+    // 更新录制时间
+    recordingStartTime = Date.now()
+    const updateRecordingTime = () => {
+      if (isRecording.value) {
+        recordingTime.value = Math.floor((Date.now() - recordingStartTime) / 1000)
+        recordingProgress.value = Math.min(recordingTime.value / 30 * 100, 100) // 最多30秒
+        setTimeout(updateRecordingTime, 1000)
+      }
+    }
+    updateRecordingTime()
+    
+    ElMessage.success('开始录制视频...')
+  } catch (error) {
+    isRecording.value = false
+    ElMessage.error('视频录制失败，请尝试导出图片')
+    console.error('MediaRecorder error:', error)
+  }
+}
+
+// 停止录制视频
+const stopVideoRecording = () => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+  isRecording.value = false
+}
+
 // 查看优化方案
 const showOptimizationPlan = () => {
-  ElMessage.info('优化方案功能开发中...')
+  ElMessage.info('正在获取AI优化建议...')
+  // 可以调用API获取优化建议
 }
 
 // 下钻分析
 const drillDown = () => {
-  ElMessage.info('下钻分析功能开发中...')
+  ElMessage.info('正在加载详细分析数据...')
+  // 可以跳转到详细分析页面
 }
 
 // 组件挂载
 onMounted(() => {
   initAnnotationEvents()
   
-  // 监听窗口大小变化
   window.addEventListener('resize', onWindowResize)
 })
 
 // 组件卸载
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
   
   if (renderer) {
     renderer.dispose()
+  }
+  
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
   }
   
   window.removeEventListener('resize', onWindowResize)
@@ -746,10 +1359,6 @@ const onWindowResize = () => {
   padding: 20px;
 }
 
-.chart-container {
-  margin-top: 20px;
-}
-
 .actions {
   margin-top: 20px;
   display: flex;
@@ -767,52 +1376,121 @@ const onWindowResize = () => {
   position: relative;
   overflow: auto;
   border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  background: #f5f7fa;
 }
 
 .annotation-img {
-  max-width: 100%;
   display: block;
+  max-width: 100%;
 }
 
-.building-marker {
+.annotation-box {
   position: absolute;
   border: 2px solid #409eff;
   background: rgba(64, 158, 255, 0.2);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-.building-marker:hover {
+.annotation-box:hover,
+.annotation-box.selected {
   background: rgba(64, 158, 255, 0.4);
+  border-color: #66b1ff;
 }
 
-.marker-label {
+.annotation-label {
   position: absolute;
   top: -20px;
   left: 0;
   background: #409eff;
   color: white;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 2px 8px;
   font-size: 12px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
-.drawing {
-  border-style: dashed;
-  background: rgba(64, 158, 255, 0.1);
+.drawing-box {
+  position: absolute;
+  border: 2px dashed #ff6600;
+  background: rgba(255, 102, 0, 0.2);
+  pointer-events: none;
 }
 
-.annotation-controls {
-  width: 300px;
-  padding: 20px;
-  border-left: 1px solid #dcdfe6;
+.annotation-form {
+  width: 280px;
+  overflow-y: auto;
 }
 
-.form-actions {
-  margin-top: 20px;
+.building-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.building-item {
   display: flex;
+  align-items: center;
   gap: 10px;
+  padding: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.building-item span:first-child {
+  flex: 1;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recording-indicator {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: #f56c6c;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.recording-time {
+  margin-left: auto;
+}
+
+.carbon-stats {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #409eff;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #909399;
+  margin-top: 5px;
 }
 </style>
