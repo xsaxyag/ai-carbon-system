@@ -211,7 +211,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
-import * as echarts from 'echarts'
 import { Setting, Search, InfoFilled, Promotion, List, ArrowDown } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
@@ -318,12 +317,35 @@ onMounted(async () => {
   try {
     loading.value = true
     error.value = ''
+    
+    console.log('[SupplyChainGraph] 组件挂载，开始初始化...')
+    
+    // 先获取API数据（如果失败会用mock数据兜底）
     await fetchNetworkData()
+    
+    // 等待DOM更新，确保threeContainer可用
     await nextTick()
+    
+    console.log('[SupplyChainGraph] DOM更新完成，检查容器...', {
+      container: threeContainer.value,
+      containerWidth: threeContainer.value?.clientWidth,
+      containerHeight: threeContainer.value?.clientHeight
+    })
+    
+    if (!threeContainer.value) {
+      throw new Error('3D容器未找到，请确保template中有 ref="threeContainer"')
+    }
+    
+    // 初始化3D场景
     initThreeScene()
+    
+    // 更新统计信息
     updateNetworkStats()
+    
     loading.value = false
+    console.log('[SupplyChainGraph] 初始化完成')
   } catch (err) {
+    console.error('[SupplyChainGraph] 初始化失败:', err)
     error.value = '初始化失败: ' + err.message
     loading.value = false
   }
@@ -403,39 +425,92 @@ async function fetchNetworkData() {
 }
 
 function initThreeScene() {
-  if (!threeContainer.value) return
-
-  threeSceneObj = createThreeScene(threeContainer.value, {
-    background: 0x0a1628,
-    enablePostProcessing: true,
-    autoRotate: false,
-    autoRotateSpeed: 0
+  if (!threeContainer.value) {
+    console.error('[initThreeScene] threeContainer.value 为空')
+    return
+  }
+  
+  console.log('[initThreeScene] 开始初始化3D场景...', {
+    container: threeContainer.value,
+    width: threeContainer.value.clientWidth,
+    height: threeContainer.value.clientHeight
   })
+  
+  try {
+    threeSceneObj = createThreeScene(threeContainer.value, {
+      background: 0x0a1628,
+      enablePostProcessing: true,
+      autoRotate: false,
+      autoRotateSpeed: 0
+    })
+    
+    console.log('[initThreeScene] createThreeScene 返回对象:', threeSceneObj)
+    
+    if (!threeSceneObj || !threeSceneObj.scene) {
+      throw new Error('createThreeScene 返回的对象无效')
+    }
+    
+    const scene = threeSceneObj.scene
+    const camera = threeSceneObj.camera
+    const renderer = threeSceneObj.renderer
+    
+    console.log('[initThreeScene] 场景对象创建成功', {
+      scene: scene,
+      camera: camera,
+      renderer: renderer,
+      cameraPosition: camera.position,
+      controls: threeSceneObj.controls
+    })
 
-  const scene = threeSceneObj.scene
+    // 地面
+    const groundGeometry = new THREE.PlaneGeometry(300, 300)
+    const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x111d33, side: THREE.DoubleSide })
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+    ground.rotation.x = -Math.PI / 2
+    ground.receiveShadow = true
+    scene.add(ground)
+    console.log('[initThreeScene] 地面已添加')
 
-  // 地面
-  const groundGeometry = new THREE.PlaneGeometry(300, 300)
-  const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x111d33, side: THREE.DoubleSide })
-  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-  ground.rotation.x = -Math.PI / 2
-  ground.receiveShadow = true
-  scene.add(ground)
+    // 创建力导向图
+    const graphData = networkData || mockNetworkData
+    console.log('[initThreeScene] 使用数据创建力导向图:', graphData)
+    createForceGraph(graphData)
+    console.log('[initThreeScene] 力导向图创建完成')
 
-  // 创建力导向图
-  createForceGraph(networkData || mockNetworkData)
+    // 相机位置
+    camera.position.set(0, 80, 100)
+    camera.lookAt(0, 0, 0)
+    threeSceneObj.controls.target.set(0, 0, 0)
+    threeSceneObj.controls.update()
+    
+    console.log('[initThreeScene] 相机位置已设置:', camera.position)
 
-  // 相机位置
-  threeSceneObj.camera.position.set(0, 80, 100)
-  threeSceneObj.controls.target.set(0, 0, 0)
-
-  // 点击事件
-  threeContainer.value.addEventListener('click', onThreeClick)
+    // 点击事件
+    threeContainer.value.addEventListener('click', onThreeClick)
+    console.log('[initThreeScene] 点击事件已绑定')
+    
+    // 启动渲染循环（关键修复！）
+    if (threeSceneObj && threeSceneObj.start) {
+      threeSceneObj.start()
+      console.log('[initThreeScene] 动画循环已启动')
+    } else {
+      console.error('[initThreeScene] threeSceneObj.start 方法不存在')
+    }
+    
+  } catch (err) {
+    console.error('[initThreeScene] 初始化失败:', err)
+    error.value = '3D场景初始化失败: ' + err.message
+  }
 }
 
 function createForceGraph(data) {
-  if (!threeSceneObj) return
+  if (!threeSceneObj || !threeSceneObj.scene) {
+    console.error('[createForceGraph] threeSceneObj 或 scene 未初始化')
+    return
+  }
+  
   const scene = threeSceneObj.scene
+  console.log('[createForceGraph] 开始创建力导向图', data)
 
   // 清理旧图形
   if (forceGraphGroup) {
@@ -444,16 +519,20 @@ function createForceGraph(data) {
       if (obj.geometry) obj.geometry.dispose()
       if (obj.material) obj.material.dispose()
     })
+    forceGraphGroup = null
   }
 
   forceGraphGroup = new THREE.Group()
+  console.log('[createForceGraph] forceGraphGroup 已创建')
 
   // 创建节点
   const nodeObjects = []
 
-  data.nodes.forEach(node => {
+  data.nodes.forEach((node, index) => {
     const radius = 2 + (node.emission / 20000) * 3
     const color = getNodeColor(node.type, node.riskLevel)
+    
+    console.log(`[createForceGraph] 创建节点 ${index}:`, node.name, { radius, color })
 
     const geometry = new THREE.SphereGeometry(radius, 32, 32)
     const material = new THREE.MeshPhongMaterial({
@@ -510,13 +589,19 @@ function createForceGraph(data) {
     sprite.userData = { isGraphNode: true }
     forceGraphGroup.add(sprite)
   })
+  
+  console.log('[createForceGraph] 节点创建完成，共', nodeObjects.length, '个节点')
 
   // 创建连接线
-  data.links.forEach(link => {
+  let linkCount = 0
+  data.links.forEach((link, index) => {
     const sourceNode = data.nodes.find(n => n.id === link.source)
     const targetNode = data.nodes.find(n => n.id === link.target)
 
     if (sourceNode && targetNode) {
+      linkCount++
+      console.log(`[createForceGraph] 创建连接线 ${index}:`, sourceNode.name, '->', targetNode.name)
+
       const startVec = new THREE.Vector3(sourceNode.x, sourceNode.y, sourceNode.z)
       const endVec = new THREE.Vector3(targetNode.x, targetNode.y, targetNode.z)
 
@@ -533,11 +618,14 @@ function createForceGraph(data) {
       const points = curve.getPoints(50)
 
       const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+      
+      // WebGL 只支持 linewidth = 1，>1 会静默失败
+      // 使用固定 linewidth: 1，通过 opacity 区分粗细视觉效果
       const lineMaterial = new THREE.LineBasicMaterial({
         color: 0x1890ff,
         transparent: true,
-        opacity: 0.5,
-        linewidth: lineWidth
+        opacity: 0.3 + (link.transfer / 7000) * 0.7,  // 用透明度替代线宽
+        linewidth: 1
       })
       const line = new THREE.Line(lineGeometry, lineMaterial)
       line.userData = { isGraphNode: true, linkData: link }
@@ -587,15 +675,28 @@ function createForceGraph(data) {
       forceGraphGroup.add(particles)
 
       // 添加动画更新
-      threeSceneObj.addAnimationHandler((time) => {
-        if (particles.userData.update) {
-          particles.userData.update(time)
-        }
-      })
+      if (threeSceneObj.addAnimationHandler) {
+        threeSceneObj.addAnimationHandler((time) => {
+          if (particles.userData.update) {
+            particles.userData.update(time)
+          }
+        })
+      }
     }
   })
+  
+  console.log('[createForceGraph] 连接线创建完成，共', linkCount, '条连接')
 
   scene.add(forceGraphGroup)
+  console.log('[createForceGraph] forceGraphGroup 已添加到场景')
+  
+  // 强制更新场景
+  if (threeSceneObj && threeSceneObj.renderer && threeSceneObj.scene && threeSceneObj.camera) {
+    threeSceneObj.renderer.render(threeSceneObj.scene, threeSceneObj.camera)
+    console.log('[createForceGraph] 强制渲染完成')
+  } else {
+    console.warn('[createForceGraph] threeSceneObj 渲染器未就绪，无法强制渲染')
+  }
 }
 
 function getNodeColor(type, riskLevel) {
