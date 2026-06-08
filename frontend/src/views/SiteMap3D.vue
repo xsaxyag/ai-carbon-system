@@ -286,9 +286,13 @@ import { UploadFilled } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import * as echarts from 'echarts'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { createThreeScene, createHeatParticle } from '../utils/three-scene.js'
 
 // Three.js变量
+let threeSceneObj = null
 let scene = null
 let camera = null
 let renderer = null
@@ -301,6 +305,7 @@ let breathingObjects = []
 let mediaRecorder = null
 let recordedChunks = []
 let recordingStartTime = null
+let composer = null  // Bloom 后处理合成器
 
 // 状态
 const threeContainer = ref(null)
@@ -589,68 +594,95 @@ const finishAnnotation = () => {
 const initThreeScene = () => {
   if (!threeContainer.value) return
   
-  // 创建场景
-  scene = new THREE.Scene()
+  // 调用 createThreeScene，它内部会创建 renderer 并添加到 DOM
+  threeSceneObj = createThreeScene(threeContainer.value, {
+    background: 0x0a1628,
+    enablePostProcessing: true,
+    autoRotate: false,
+    autoRotateSpeed: 0
+  })
   
-  // 根据日夜模式设置背景
-  updateSceneBackground()
+  // 直接使用 threeSceneObj 里的对象
+  scene = threeSceneObj.scene
+  camera = threeSceneObj.camera
+  renderer = threeSceneObj.renderer
+  composer = threeSceneObj.composer
+  controls = threeSceneObj.controls
   
-  // 创建相机
-  const container = threeContainer.value
-  camera = new THREE.PerspectiveCamera(
-    75,
-    container.clientWidth / container.clientHeight,
-    0.1,
-    1000
-  )
+  // 覆盖相机位置
   camera.position.set(80, 60, 80)
   camera.lookAt(0, 0, 0)
   
-  // 创建渲染器
-  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
-  renderer.setSize(container.clientWidth, container.clientHeight)
-  renderer.setPixelRatio(window.devicePixelRatio)
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
-  container.innerHTML = ''
-  container.appendChild(renderer.domElement)
+  // 调整 Bloom 后处理参数（createThreeScene 默认 strength=0.6，这里改为 1.2）
+  if (composer && composer.passes && composer.passes.length > 1) {
+    const bloomPass = composer.passes[1]  // 第二个 pass 是 UnrealBloomPass
+    if (bloomPass && bloomPass.strength !== undefined) {
+      bloomPass.strength = 1.2
+      console.log('[SiteMap3D] Bloom strength 已调整为 1.2')
+    }
+  }
   
-  // 添加轨道控制器
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = true
-  controls.dampingFactor = 0.05
-  controls.maxPolarAngle = Math.PI / 2
+  // 根据日夜模式更新背景
+  updateSceneBackground()
   
   // 添加光源
   updateLighting()
   
   // 添加地面
-  const groundGeometry = new THREE.PlaneGeometry(200, 200)
-  const groundMaterial = new THREE.MeshLambertMaterial({ 
-    color: isNightMode.value ? 0x1a1a2e : 0x98fb98 
-  })
-  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-  ground.rotation.x = -Math.PI / 2
-  ground.receiveShadow = true
-  scene.add(ground)
+  createGroundPlane()
   
   // 创建建筑
   createBuildings()
   
-  // 添加网格辅助
-  const gridHelper = new THREE.GridHelper(200, 20, 0x666666, 0x444444)
-  gridHelper.material.opacity = 0.3
-  gridHelper.material.transparent = true
-  scene.add(gridHelper)
-  
-  // 添加3D特效
+  // 添加特效
   if (showEffects.value) {
     createParticleSystem()
     createGlowEffects()
   }
   
-  // 开始动画循环
-  animate()
+  // 使用 threeSceneObj.addAnimationHandler() 注册动画更新
+  threeSceneObj.addAnimationHandler((time) => {
+    const t = time * 0.001
+    
+    // 自动旋转
+    if (rotating.value) {
+      buildingMeshes.forEach((mesh) => {
+        mesh.rotation.y += 0.005
+      })
+    }
+    
+    // 呼吸动画
+    if (enabledEffects.value.includes('breathing') && breathingObjects.length > 0) {
+      breathingObjects.forEach((obj, index) => {
+        if (obj.material) {
+          const breathe = Math.sin(t * 2 + index * 0.5) * 0.1 + 0.9
+          if (obj.material.emissiveIntensity !== undefined) {
+            obj.material.emissiveIntensity = breathe * (isNightMode.value ? 0.35 : 0.08)
+          }
+        }
+      })
+    }
+    
+    // 粒子动画
+    if (particleSystem && enabledEffects.value.includes('particle')) {
+      particleSystem.rotation.y += 0.0005
+      const positions = particleSystem.geometry.attributes.position.array
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i + 1] += Math.sin(t + i) * 0.02
+        if (positions[i + 1] > 120) positions[i + 1] = 10
+      }
+      particleSystem.geometry.attributes.position.needsUpdate = true
+    }
+    
+    // 光晕效果
+    if (enabledEffects.value.includes('glow') && glowSprites.length > 0) {
+      glowSprites.forEach((sprite, index) => {
+        if (sprite.material.opacity !== undefined) {
+          sprite.material.opacity = Math.sin(t * 1.5 + index * 0.3) * 0.3 + 0.4
+        }
+      })
+    }
+  })
   
   sceneReady.value = true
   ElMessage.success('3D园区模型生成成功！')
@@ -705,6 +737,59 @@ const updateLighting = () => {
   }
 }
 
+// 创建带网格和反射效果的地面
+const createGroundPlane = () => {
+  // 地面主体（深色带轻微反射）
+  const groundGeometry = new THREE.PlaneGeometry(300, 300)
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    color: isNightMode.value ? 0x111122 : 0x3a5f3a,
+    metalness: 0.3,
+    roughness: 0.6
+  })
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+  ground.rotation.x = -Math.PI / 2
+  ground.receiveShadow = true
+  scene.add(ground)
+  
+  // 半透明网格覆盖层（Canvas纹理）
+  const gridCanvas = document.createElement('canvas')
+  gridCanvas.width = 512
+  gridCanvas.height = 512
+  const ctx = gridCanvas.getContext('2d')
+  ctx.strokeStyle = isNightMode.value ? 'rgba(0, 180, 255, 0.15)' : 'rgba(0, 100, 0, 0.12)'
+  ctx.lineWidth = 1
+  const step = 32
+  for (let i = 0; i <= 512; i += step) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke()
+  }
+  const gridTexture = new THREE.CanvasTexture(gridCanvas)
+  gridTexture.wrapS = THREE.RepeatWrapping
+  gridTexture.wrapT = THREE.RepeatWrapping
+  gridTexture.repeat.set(8, 8)
+  const gridOverlay = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 300),
+    new THREE.MeshBasicMaterial({ map: gridTexture, transparent: true, opacity: 0.6, depthWrite: false })
+  )
+  gridOverlay.rotation.x = -Math.PI / 2
+  gridOverlay.position.y = 0.02
+  scene.add(gridOverlay)
+  
+  // 园区边界发光环
+  const ringGeometry = new THREE.RingGeometry(145, 150, 64)
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00d4aa,
+    transparent: true,
+    opacity: isNightMode.value ? 0.5 : 0.25,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  })
+  const boundaryRing = new THREE.Mesh(ringGeometry, ringMaterial)
+  boundaryRing.rotation.x = -Math.PI / 2
+  boundaryRing.position.y = 0.05
+  scene.add(boundaryRing)
+}
+
 // 切换日夜模式
 const toggleDayNight = () => {
   isNightMode.value = !isNightMode.value
@@ -743,22 +828,21 @@ const createBuildings = () => {
     const geometry = new THREE.BoxGeometry(width, height, depth)
     const color = typeColors[building.type] || typeColors.other
     
-    let material
-    if (isNightMode.value) {
-      material = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: color,
-        emissiveIntensity: 0.3,
-        metalness: 0.5,
-        roughness: 0.5
-      })
-    } else {
-      material = new THREE.MeshStandardMaterial({
-        color: color,
-        metalness: 0.3,
-        roughness: 0.7
-      })
-    }
+    // 玻璃幕墙材质（升级：更强调科技感）
+    const material = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(color),
+      metalness: 0.85,       // 更高金属感
+      roughness: 0.1,         // 更低粗糙度 = 更亮
+      transparent: true,
+      opacity: isNightMode.value ? 0.65 : 0.78,
+      envMapIntensity: 1.8,   // 增强环境反射
+      clearcoat: 0.6,         // 加清漆层
+      clearcoatRoughness: 0.1,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: isNightMode.value ? 0.35 : 0.08,
+      transmission: 0.15,      // 轻微透射（玻璃感）
+      ior: 1.5
+    })
     
     const mesh = new THREE.Mesh(geometry, material)
     mesh.position.set(x + width / 2, height / 2, z + depth / 2)
@@ -771,6 +855,13 @@ const createBuildings = () => {
     scene.add(mesh)
     buildingMeshes.push(mesh)
     breathingObjects.push(mesh)
+    
+    // 建筑边框发光线条（增强轮廓可见性）
+    const edges = new THREE.EdgesGeometry(geometry)
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x00d4aa, transparent: true, opacity: 0.5 })
+    const line = new THREE.LineSegments(edges, lineMat)
+    line.position.copy(mesh.position)
+    scene.add(line)
     
     // 添加建筑标签
     addBuildingLabel(mesh, building.name, height)
@@ -894,12 +985,15 @@ const createParticleSystem = () => {
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
   
+  // 粒子改为发光球体（升级视觉效果）
   const material = new THREE.PointsMaterial({
-    size: 1.5,
+    size: 1.8,  // 更大
     vertexColors: true,
     transparent: true,
-    opacity: 0.6,
-    blending: THREE.AdditiveBlending
+    opacity: 0.75,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+    depthWrite: false  // 防止深度冲突
   })
   
   particleSystem = new THREE.Points(geometry, material)
@@ -909,16 +1003,20 @@ const createParticleSystem = () => {
 // 创建光晕效果
 const createGlowEffects = () => {
   glowSprites.forEach(sprite => {
-    // 创建光晕精灵
+    // 光晕效果（升级：更大更亮）
     const glowCanvas = document.createElement('canvas')
-    glowCanvas.width = 128
-    glowCanvas.height = 128
+    glowCanvas.width = 256
+    glowCanvas.height = 256
     const glowCtx = glowCanvas.getContext('2d')
     
-    const gradient = glowCtx.createRadialGradient(64, 64, 0, 64, 64, 64)
-    gradient.addColorStop(0, 'rgba(64, 158, 255, 0.8)')
-    gradient.addColorStop(0.5, 'rgba(64, 158, 255, 0.3)')
+    const gradient = glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128)
+    gradient.addColorStop(0, 'rgba(0, 212, 170, 0.9)')
+    gradient.addColorStop(0.3, 'rgba(24, 144, 255, 0.5)')
+    gradient.addColorStop(0.7, 'rgba(64, 158, 255, 0.15)')
     gradient.addColorStop(1, 'rgba(64, 158, 255, 0)')
+    
+    glowCtx.fillStyle = gradient
+    glowCtx.fillRect(0, 0, 256, 256)
     
     glowCtx.fillStyle = gradient
     glowCtx.fillRect(0, 0, 128, 128)
@@ -933,7 +1031,7 @@ const createGlowEffects = () => {
     
     const glowSprite = new THREE.Sprite(glowMaterial)
     glowSprite.position.copy(sprite.position)
-    glowSprite.scale.set(15, 15, 1)
+    glowSprite.scale.set(22, 22, 1)  // 更大
     scene.add(glowSprite)
     glowSprites.push(glowSprite)
   })
@@ -1066,55 +1164,6 @@ const getReductionProgressColor = (percentage) => {
   if (percentage < 20) return '#909399'
   if (percentage < 35) return '#409eff'
   return '#67c23a'
-}
-
-// 动画循环
-const animate = () => {
-  animationId = requestAnimationFrame(animate)
-  
-  const time = Date.now() * 0.001
-  
-  // 自动旋转
-  if (rotating.value) {
-    buildingMeshes.forEach((mesh) => {
-      mesh.rotation.y += 0.005
-    })
-  }
-  
-  // 呼吸动画
-  if (enabledEffects.value.includes('breathing') && breathingObjects.length > 0) {
-    breathingObjects.forEach((obj, index) => {
-      if (obj.material) {
-        const breathe = Math.sin(time * 2 + index * 0.5) * 0.1 + 0.9
-        if (obj.material.emissiveIntensity !== undefined) {
-          obj.material.emissiveIntensity = breathe * 0.3
-        }
-      }
-    })
-  }
-  
-  // 粒子动画
-  if (particleSystem && enabledEffects.value.includes('particle')) {
-    particleSystem.rotation.y += 0.0005
-    const positions = particleSystem.geometry.attributes.position.array
-    for (let i = 0; i < positions.length; i += 3) {
-      positions[i + 1] += Math.sin(time + i) * 0.02
-      if (positions[i + 1] > 120) positions[i + 1] = 10
-    }
-    particleSystem.geometry.attributes.position.needsUpdate = true
-  }
-  
-  // 光晕效果
-  if (enabledEffects.value.includes('glow') && glowSprites.length > 0) {
-    glowSprites.forEach((sprite, index) => {
-      if (sprite.material.opacity !== undefined) {
-        sprite.material.opacity = Math.sin(time * 1.5 + index * 0.3) * 0.3 + 0.4
-      }
-    })
-  }
-  
-  controls.update()
-  renderer.render(scene, camera)
 }
 
 // 重置相机
@@ -1258,24 +1307,67 @@ const drillDown = () => {
 onMounted(() => {
   initAnnotationEvents()
   
+  // ========== 新增：默认示例建筑数据 ==========
+  // 自动加载默认建筑数据，无需用户上传图片
+  loadDefaultBuildings()
+  
   window.addEventListener('resize', onWindowResize)
 })
 
-// 组件卸载
-onBeforeUnmount(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
+// 加载默认建筑数据
+const loadDefaultBuildings = () => {
+  console.log('[SiteMap3D] 开始加载默认建筑数据...')
+  
+  // 8-10个典型工业园区建筑，合理分布在 1000x800 标注区域内
+  buildings.value = [
+    { name: '生产车间A', type: 'production', area: 4500, x: 100, y: 150, width: 180, height: 120, carbon_emission: 420, energy_consumption: 95000, carbon_intensity: 9.3, energy_type: '电力+天然气', green_energy_ratio: 25, reduction_potential: 35, rank: 2 },
+    { name: '生产车间B', type: 'production', area: 3800, x: 320, y: 150, width: 160, height: 110, carbon_emission: 350, energy_consumption: 82000, carbon_intensity: 9.2, energy_type: '电力', green_energy_ratio: 30, reduction_potential: 40, rank: 3 },
+    { name: '生产车间C', type: 'production', area: 3200, x: 100, y: 320, width: 150, height: 100, carbon_emission: 280, energy_consumption: 68000, carbon_intensity: 8.8, energy_type: '电力+蒸汽', green_energy_ratio: 20, reduction_potential: 30, rank: 4 },
+    { name: '原材料仓库', type: 'warehouse', area: 2000, x: 520, y: 100, width: 140, height: 100, carbon_emission: 80, energy_consumption: 15000, carbon_intensity: 4.0, energy_type: '电力', green_energy_ratio: 10, reduction_potential: 15, rank: 8 },
+    { name: '成品仓库', type: 'warehouse', area: 2500, x: 520, y: 250, width: 150, height: 110, carbon_emission: 60, energy_consumption: 12000, carbon_intensity: 2.4, energy_type: '电力', green_energy_ratio: 15, reduction_potential: 20, rank: 9 },
+    { name: '办公楼A', type: 'office', area: 1800, x: 300, y: 500, width: 120, height: 80, carbon_emission: 45, energy_consumption: 25000, carbon_intensity: 2.5, energy_type: '电力', green_energy_ratio: 45, reduction_potential: 55, rank: 6 },
+    { name: '办公楼B', type: 'office', area: 1500, x: 450, y: 500, width: 110, height: 70, carbon_emission: 32, energy_consumption: 18000, carbon_intensity: 2.1, energy_type: '电力', green_energy_ratio: 50, reduction_potential: 60, rank: 7 },
+    { name: '研发中心', type: 'lab', area: 1800, x: 700, y: 400, width: 130, height: 90, carbon_emission: 48, energy_consumption: 22000, carbon_intensity: 2.7, energy_type: '电力+太阳能', green_energy_ratio: 40, reduction_potential: 50, rank: 5 },
+    { name: '动力中心', type: 'other', area: 800, x: 700, y: 150, width: 90, height: 70, carbon_emission: 280, energy_consumption: 120000, carbon_intensity: 35.0, energy_type: '天然气+电力', green_energy_ratio: 5, reduction_potential: 25, rank: 1 },
+  ]
+  
+  // 计算碳排放统计数据
+  const totalEmission = buildings.value.reduce((sum, b) => sum + b.carbon_emission, 0)
+  const avgIntensity = buildings.value.reduce((sum, b) => sum + b.carbon_intensity, 0) / buildings.value.length
+  
+  carbonData.value = {
+    buildings: buildings.value,
+    total_carbon_emission: totalEmission,
+    average_intensity: avgIntensity,
+    summary: {
+      green_energy_coverage: 25
+    }
   }
   
-  if (renderer) {
-    renderer.dispose()
+  // 设置场景就绪状态
+  sceneReady.value = true
+  
+  // 自动初始化3D场景
+  nextTick(() => {
+    initThreeScene()
+    console.log('[SiteMap3D] 默认建筑数据加载完成，3D场景已生成', {
+      buildingCount: buildings.value.length,
+      totalEmission,
+      avgIntensity: avgIntensity.toFixed(1)
+    })
+  })
+}
+
+// 组件卸载
+onBeforeUnmount(() => {
+  // 使用 threeSceneObj.destroy() 统一清理资源
+  if (threeSceneObj && threeSceneObj.destroy) {
+    threeSceneObj.destroy()
   }
   
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop()
   }
-  
-  window.removeEventListener('resize', onWindowResize)
 })
 
 // 窗口大小变化处理
