@@ -130,11 +130,10 @@ class LLMService:
 
         result = response.json()
         message = result["choices"][0]["message"]
-        # GLM-5.1 可能返回 reasoning_content，content 可能为空，需拼接
-        content = message.get("content", "")
-        if not content:
-            # 如果 content 为空，尝试用 reasoning_content 兜底
-            content = message.get("reasoning_content", "")
+        
+        # GLM-5.1 可能只返回 reasoning_content，content 可能为空
+        content = message.get("content", "") or message.get("reasoning_content", "")
+        
         return content
 
     async def extract_ocr_data(self, ocr_text: str) -> Dict:

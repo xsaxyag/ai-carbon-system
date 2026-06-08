@@ -276,7 +276,7 @@ xxx
         else:
             reply = _fallback_reply(user_message, intent)
     except Exception as e:
-        reply = f"抱歉，AI服务暂时不可用。错误：{str(e)}\n\n您可以尝试更具体的问题，或稍后再试。"
+        reply = _fallback_reply(user_message, intent)
     
     # 提取建议操作
     action = None
