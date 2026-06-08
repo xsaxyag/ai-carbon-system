@@ -803,44 +803,76 @@ const createBuildings = () => {
   buildingMeshes = []
   breathingObjects = []
   
+  if (!buildings.value || buildings.value.length === 0) {
+    console.warn('No buildings to render')
+    return
+  }
+  
   buildings.value.forEach((building, index) => {
     // 根据图片坐标映射到3D空间
     const imgWidth = 1000
     const imgHeight = 800
     const sceneSize = 160
     
-    const x = (building.x / imgWidth) * sceneSize - sceneSize / 2
-    const z = (building.y / imgHeight) * sceneSize - sceneSize / 2
-    const width = (building.width / imgWidth) * sceneSize
-    const depth = (building.height / imgHeight) * sceneSize
+    // 防御性检查：确保坐标有效
+    const bx = Number(building.x) || 0
+    const by = Number(building.y) || 0
+    const bw = Number(building.width) || 50
+    const bh = Number(building.height) || 50
+    const area = Number(building.area) || 1000
+    
+    const x = (bx / imgWidth) * sceneSize - sceneSize / 2
+    const z = (by / imgHeight) * sceneSize - sceneSize / 2
+    const width = Math.max((bw / imgWidth) * sceneSize, 2)  // 最小宽度2
+    const depth = Math.max((bh / imgHeight) * sceneSize, 2) // 最小深度2
+    
+    // NaN 检查
+    if (isNaN(x) || isNaN(z) || isNaN(width) || isNaN(depth)) {
+      console.error('Invalid building coordinates:', building)
+      return
+    }
     
     // 根据碳排放强度计算高度（真实数据或模拟）
-    let baseHeight
-    if (building.carbon_emission > 0) {
-      // 使用真实碳排放数据
-      baseHeight = Math.sqrt(building.area) / 3 + (parseFloat(building.carbon_emission) / 100)
-    } else {
-      baseHeight = Math.sqrt(building.area) / 3
-    }
+    const carbonEmission = parseFloat(building.carbon_emission) || 0
+    let baseHeight = Math.sqrt(area) / 3 + (carbonEmission / 100)
     const height = Math.max(baseHeight, 3)
     
     // 创建建筑几何体
     const geometry = new THREE.BoxGeometry(width, height, depth)
     const color = typeColors[building.type] || typeColors.other
     
-    // 玻璃幕墙材质（升级：更强调科技感）
+    // 玻璃幕墙材质（升级：更强调科技感 + 环境贴图）
+    // 创建简单的环境贴图（CubeTexture 替代方案：使用渐变纹理）
+    const pmremGenerator = new THREE.PMREMGenerator(renderer)
+    const envScene = new THREE.Scene()
+    envScene.background = new THREE.Color(0x0a1628)
+    
+    // 添加渐变光源到环境场景
+    const envLight1 = new THREE.DirectionalLight(0x00d4aa, 2)
+    envLight1.position.set(1, 1, 1)
+    envScene.add(envLight1)
+    const envLight2 = new THREE.DirectionalLight(0x1890ff, 1.5)
+    envLight2.position.set(-1, 0.5, -1)
+    envScene.add(envLight2)
+    const envLight3 = new THREE.DirectionalLight(0xffffff, 1)
+    envLight3.position.set(0, -1, 0)
+    envScene.add(envLight3)
+    
+    const envMap = pmremGenerator.fromScene(envScene).texture
+    
     const material = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(color),
-      metalness: 0.85,       // 更高金属感
-      roughness: 0.1,         // 更低粗糙度 = 更亮
+      metalness: 0.6,         // 适中金属感
+      roughness: 0.25,        // 光滑表面
       transparent: true,
-      opacity: isNightMode.value ? 0.65 : 0.78,
-      envMapIntensity: 1.8,   // 增强环境反射
-      clearcoat: 0.6,         // 加清漆层
+      opacity: isNightMode.value ? 0.7 : 0.85,
+      envMap: envMap,         // 环境贴图（关键！）
+      envMapIntensity: 2.5,   // 增强环境反射
+      clearcoat: 0.8,         // 加清漆层
       clearcoatRoughness: 0.1,
       emissive: new THREE.Color(color),
-      emissiveIntensity: isNightMode.value ? 0.35 : 0.08,
-      transmission: 0.15,      // 轻微透射（玻璃感）
+      emissiveIntensity: isNightMode.value ? 0.4 : 0.12,
+      transmission: 0.1,      // 轻微透射（玻璃感）
       ior: 1.5
     })
     
@@ -876,15 +908,24 @@ const createBuildings = () => {
 
 // 添加屋顶装饰
 const addRoofDecoration = (mesh, width, depth) => {
+  // 防御性检查
+  if (!mesh || !mesh.geometry) return
+  
+  const meshHeight = mesh.geometry.parameters?.height || 10
+  const roofRadius = Math.max(Number(width) || 5, Number(depth) || 5) * 0.6
+  
+  // NaN 检查
+  if (isNaN(roofRadius) || roofRadius <= 0) return
+  
   // 添加屋顶
-  const roofGeometry = new THREE.ConeGeometry(Math.max(width, depth) * 0.6, 3, 4)
+  const roofGeometry = new THREE.ConeGeometry(roofRadius, 3, 4)
   const roofMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x333333,
     metalness: 0.8,
     roughness: 0.3
   })
   const roof = new THREE.Mesh(roofGeometry, roofMaterial)
-  roof.position.set(mesh.position.x, mesh.geometry.parameters.height + 1.5, mesh.position.z)
+  roof.position.set(mesh.position.x, meshHeight + 1.5, mesh.position.z)
   roof.rotation.y = Math.PI / 4
   scene.add(roof)
   
@@ -938,9 +979,14 @@ const addBuildingLabel = (mesh, text, height) => {
     transparent: true
   })
   const sprite = new THREE.Sprite(spriteMaterial)
+  
+  // 防御性检查
+  const meshHeight = mesh.geometry?.parameters?.height || 10
+  const labelHeight = Number(height) || meshHeight
+  
   sprite.position.set(
     mesh.position.x,
-    mesh.position.y + mesh.geometry.parameters.height / 2 + 8,
+    mesh.position.y + labelHeight / 2 + 8,
     mesh.position.z
   )
   sprite.scale.set(12, 6, 1)
