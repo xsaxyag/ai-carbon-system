@@ -76,7 +76,7 @@ class LLMService:
             if not config.LLM_API_KEY or config.LLM_API_KEY == "sk-xxx":
                 raise ValueError("API Key未配置")
             # httpx async client，超时30秒
-            self._client = httpx.AsyncClient(timeout=30.0)
+            self._client = httpx.AsyncClient(timeout=60.0)
             self._available = True
         except Exception as e:
             self._available = False
