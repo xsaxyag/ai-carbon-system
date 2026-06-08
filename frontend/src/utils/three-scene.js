@@ -574,50 +574,6 @@ export function createBatteryModel(position, soc = 0.8) {
 }
 
 /**
- * 创建3D饼图（ECharts GL）
- * @param {HTMLElement} container - 容器
- * @param {Array} data - 数据 [{name, value, itemStyle}]
- * @returns {Object} ECharts实例
- */
-export function create3DPieChart(container, data) {
-  const echarts = require('echarts')
-  require('echarts-gl')
-
-  const chart = echarts.init(container)
-  chart.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
-      backgroundColor: 'rgba(10, 22, 40, 0.9)',
-      borderColor: '#00d4aa',
-      textStyle: { color: '#fff' }
-    },
-    series: [{
-      type: 'pie3D',
-      radius: ['30%', '70%'],
-      center: ['50%', '50%'],
-      data: data,
-      label: {
-        show: true,
-        formatter: '{b}\n{d}%',
-        fontSize: 12
-      },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 20,
-          shadowColor: 'rgba(0, 212, 170, 0.5)'
-        }
-      },
-      animationType: 'scale',
-      animationEasing: 'elasticOut'
-    }]
-  })
-
-  window.addEventListener('resize', () => chart.resize())
-  return chart
-}
-
-/**
  * 工具函数：线性插值
  */
 export function lerp(a, b, t) {
@@ -644,7 +600,6 @@ export default {
   createFootprintNode,
   createFactoryBuilding,
   createBatteryModel,
-  create3DPieChart,
   latLonToVector3,
   lerp
 }
