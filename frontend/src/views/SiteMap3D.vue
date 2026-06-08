@@ -709,12 +709,12 @@ const updateLighting = () => {
   oldLights.forEach(l => scene.remove(l))
   
   if (isNightMode.value) {
-    // 夜晚模式：蓝色月光 + 建筑灯光
-    const moonLight = new THREE.DirectionalLight(0x4466ff, 0.3)
+    // 夜晚模式：月光 + 建筑灯光 + 环境光增强
+    const moonLight = new THREE.DirectionalLight(0x4466ff, 0.5)
     moonLight.position.set(50, 100, 50)
     scene.add(moonLight)
     
-    const ambientLight = new THREE.AmbientLight(0x112244, 0.4)
+    const ambientLight = new THREE.AmbientLight(0x223355, 0.8)
     scene.add(ambientLight)
     
     // 建筑窗户灯光
@@ -724,16 +724,21 @@ const updateLighting = () => {
       scene.add(light)
     })
   } else {
-    // 白天模式：阳光
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+    // 白天模式：充足阳光
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0)
     scene.add(ambientLight)
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2)
     directionalLight.position.set(50, 100, 50)
     directionalLight.castShadow = true
     directionalLight.shadow.mapSize.width = 2048
     directionalLight.shadow.mapSize.height = 2048
     scene.add(directionalLight)
+    
+    // 补充侧光
+    const fillLight = new THREE.DirectionalLight(0x8899bb, 0.5)
+    fillLight.position.set(-30, 50, -30)
+    scene.add(fillLight)
   }
 }
 
@@ -841,13 +846,14 @@ const createBuildings = () => {
     const geometry = new THREE.BoxGeometry(width, height, depth)
     const color = typeColors[building.type] || typeColors.other
     
-    // 建筑材质 - 使用 MeshStandardMaterial（稳定可靠，不依赖envMap也能正常显示）
-    const material = new THREE.MeshStandardMaterial({
+    // 建筑材质 - 使用 MeshPhongMaterial（与其他3D页面一致，弱光下也能正常显示）
+    const material = new THREE.MeshPhongMaterial({
       color: new THREE.Color(color),
-      metalness: 0.3,
-      roughness: 0.4,
       emissive: new THREE.Color(color),
-      emissiveIntensity: isNightMode.value ? 0.5 : 0.15
+      emissiveIntensity: isNightMode.value ? 0.5 : 0.2,
+      shininess: 80,
+      transparent: true,
+      opacity: isNightMode.value ? 0.85 : 0.92
     })
     
     const mesh = new THREE.Mesh(geometry, material)
@@ -893,10 +899,11 @@ const addRoofDecoration = (mesh, width, depth) => {
   
   // 添加屋顶
   const roofGeometry = new THREE.ConeGeometry(roofRadius, 3, 4)
-  const roofMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x333333,
-    metalness: 0.8,
-    roughness: 0.3
+  const roofMaterial = new THREE.MeshPhongMaterial({ 
+    color: 0x555555,
+    emissive: 0x222222,
+    emissiveIntensity: 0.3,
+    shininess: 60
   })
   const roof = new THREE.Mesh(roofGeometry, roofMaterial)
   roof.position.set(mesh.position.x, meshHeight + 1.5, mesh.position.z)

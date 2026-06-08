@@ -315,7 +315,6 @@ const mockNetworkData = {
 
 onMounted(async () => {
   try {
-    loading.value = true
     error.value = ''
     
     console.log('[SupplyChainGraph] 组件挂载，开始初始化...')
@@ -323,26 +322,26 @@ onMounted(async () => {
     // 先获取API数据（如果失败会用mock数据兜底）
     await fetchNetworkData()
     
-    // 等待DOM更新，确保threeContainer可用
+    // 关键：先设loading=false让容器可见，否则v-show隐藏容器导致clientWidth=0
+    loading.value = false
     await nextTick()
     
-    console.log('[SupplyChainGraph] DOM更新完成，检查容器...', {
+    console.log('[SupplyChainGraph] 容器已可见，检查尺寸...', {
       container: !!threeContainer.value,
       containerWidth: threeContainer.value?.clientWidth,
       containerHeight: threeContainer.value?.clientHeight
     })
     
     if (!threeContainer.value) {
-      throw new Error('3D容器未找到，请确保template中有 ref="threeContainer"')
+      throw new Error('3D容器未找到')
     }
     
-    // 初始化3D场景（无论API是否成功都执行）
+    // 初始化3D场景（容器必须可见才能正确获取尺寸）
     initThreeScene()
     
     // 更新统计信息
     updateNetworkStats()
     
-    loading.value = false
     console.log('[SupplyChainGraph] 初始化完成')
   } catch (err) {
     console.error('[SupplyChainGraph] 初始化失败:', err)
