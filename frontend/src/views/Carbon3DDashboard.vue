@@ -117,6 +117,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { PieChart, TrendCharts, Histogram, Promotion } from '@element-plus/icons-vue'
@@ -221,7 +223,7 @@ async function fetchAllData() {
         value: scopeData.scope1.total,
         name: 'Scope 1 直接排放',
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: createLinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#e74c3c' },
             { offset: 1, color: '#c0392b' }
           ])
@@ -231,7 +233,7 @@ async function fetchAllData() {
         value: scopeData.scope2.total,
         name: 'Scope 2 能源间接',
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: createLinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#f39c12' },
             { offset: 1, color: '#e67e22' }
           ])
@@ -241,7 +243,7 @@ async function fetchAllData() {
         value: scopeData.scope3.total,
         name: 'Scope 3 其他间接',
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: createLinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#27ae60' },
             { offset: 1, color: '#2ecc71' }
           ])
@@ -514,21 +516,21 @@ function initCharts() {
           name: 'Scope 1', type: 'line', smooth: true, data: td.scope1,
           itemStyle: { color: '#e74c3c' },
           lineStyle: { width: 2 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(231,76,60,0.3)' }, { offset: 1, color: 'rgba(231,76,60,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(231,76,60,0.3)' }, { offset: 1, color: 'rgba(231,76,60,0.01)' }]) },
           symbol: 'circle', symbolSize: 5
         },
         {
           name: 'Scope 2', type: 'line', smooth: true, data: td.scope2,
           itemStyle: { color: '#f39c12' },
           lineStyle: { width: 2 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(243,156,18,0.3)' }, { offset: 1, color: 'rgba(243,156,18,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(243,156,18,0.3)' }, { offset: 1, color: 'rgba(243,156,18,0.01)' }]) },
           symbol: 'circle', symbolSize: 5
         },
         {
           name: 'Scope 3', type: 'line', smooth: true, data: td.scope3,
           itemStyle: { color: '#27ae60' },
           lineStyle: { width: 2 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(39,174,96,0.3)' }, { offset: 1, color: 'rgba(39,174,96,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(39,174,96,0.3)' }, { offset: 1, color: 'rgba(39,174,96,0.01)' }]) },
           symbol: 'circle', symbolSize: 5
         }
       ],
@@ -566,7 +568,7 @@ function initCharts() {
         data: hd.values.map((v, i) => ({
           value: v,
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            color: createLinearGradient(0, 0, 1, 0, [
               { offset: 0, color: v > 2000 ? '#ff4d4f' : v > 500 ? '#f39c12' : '#00d4aa' },
               { offset: 1, color: v > 2000 ? '#c0392b' : v > 500 ? '#e67e22' : '#27ae60' }
             ])
@@ -616,7 +618,7 @@ function initCharts() {
         data: sources.map(s => s.value).reverse(),
         itemStyle: {
           borderRadius: [0, 4, 4, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: createLinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#667eea' },
             { offset: 1, color: '#764ba2' }
           ])

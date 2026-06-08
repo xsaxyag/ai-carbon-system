@@ -164,6 +164,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { Promotion, InfoFilled } from '@element-plus/icons-vue'
@@ -553,7 +555,7 @@ function updateCharts(zone) {
         itemStyle: { color: zone.color },
         lineStyle: { width: 2 },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: createLinearGradient(0, 0, 0, 1, [
             { offset: 0, color: zone.color + '80' },
             { offset: 1, color: zone.color + '05' }
           ])

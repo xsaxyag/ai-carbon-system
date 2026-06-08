@@ -186,6 +186,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, computed, onMounted, nextTick, onUnmounted, markRaw } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -408,10 +410,10 @@ function renderCharts() {
           borderRadius: [8, 8, 0, 0],
           color: (params) => {
             const colors = [
-              new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#e74c3c' }, { offset: 1, color: '#c0392b' }]),
-              new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#f39c12' }, { offset: 1, color: '#e67e22' }]),
-              new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#27ae60' }, { offset: 1, color: '#2ecc71' }]),
-              new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#3498db' }, { offset: 1, color: '#2980b9' }])
+              createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#e74c3c' }, { offset: 1, color: '#c0392b' }]),
+              createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#f39c12' }, { offset: 1, color: '#e67e22' }]),
+              createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#27ae60' }, { offset: 1, color: '#2ecc71' }]),
+              createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#3498db' }, { offset: 1, color: '#2980b9' }])
             ]
             return colors[params.dataIndex] || '#409eff'
           }
@@ -462,7 +464,7 @@ function renderCharts() {
       series: [{
         type: 'line', smooth: true,
         data: months.map(m => parseFloat((monthly_data[m] || 0).toFixed(2))),
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.02)' }]) },
+        areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.02)' }]) },
         itemStyle: { color: '#409eff' },
         lineStyle: { width: 3 },
         symbol: 'circle', symbolSize: 8,

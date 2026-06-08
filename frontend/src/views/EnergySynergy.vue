@@ -164,6 +164,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { Setting, Promotion, Check, InfoFilled, DataLine, TrendCharts } from '@element-plus/icons-vue'
@@ -720,7 +722,7 @@ function initCharts() {
           type: 'bar',
           data: mockGridData.gridImport,
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: createLinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(24,144,255,0.8)' },
               { offset: 1, color: 'rgba(24,144,255,0.1)' }
             ]),
@@ -733,7 +735,7 @@ function initCharts() {
           type: 'bar',
           data: mockGridData.gridExport,
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: createLinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(0,212,170,0.8)' },
               { offset: 1, color: 'rgba(0,212,170,0.1)' }
             ]),

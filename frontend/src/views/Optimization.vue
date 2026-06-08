@@ -226,6 +226,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, reactive, onMounted, computed, nextTick, onUnmounted, markRaw } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -391,7 +393,7 @@ function renderCharts() {
         type: 'bar',
         data: measures_data.map(m => ({
           value: m.reduction_potential,
-          itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#667eea' }, { offset: 1, color: '#764ba2' }]) }
+          itemStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#667eea' }, { offset: 1, color: '#764ba2' }]) }
         })),
         itemStyle: { borderRadius: [8, 8, 0, 0] },
         barWidth: '55%',

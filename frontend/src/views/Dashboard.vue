@@ -131,6 +131,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, onMounted, reactive, nextTick, onUnmounted, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import {
@@ -261,9 +263,9 @@ function renderCharts(records) {
 
   // === 饼图：排放结构 ===
   const scopeData = [
-    { value: records.filter(r => r.scope === 'scope1').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围1 直接排放', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#e74c3c' }, { offset: 1, color: '#c0392b' }]) } },
-    { value: records.filter(r => r.scope === 'scope2').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围2 能源间接', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#f39c12' }, { offset: 1, color: '#e67e22' }]) } },
-    { value: records.filter(r => r.scope === 'scope3').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围3 其他间接', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#27ae60' }, { offset: 1, color: '#2ecc71' }]) } },
+    { value: records.filter(r => r.scope === 'scope1').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围1 直接排放', itemStyle: { color: createLinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#e74c3c' }, { offset: 1, color: '#c0392b' }]) } },
+    { value: records.filter(r => r.scope === 'scope2').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围2 能源间接', itemStyle: { color: createLinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#f39c12' }, { offset: 1, color: '#e67e22' }]) } },
+    { value: records.filter(r => r.scope === 'scope3').reduce((s, r) => s + (parseFloat(r.co2_emission) || 0), 0), name: '范围3 其他间接', itemStyle: { color: createLinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#27ae60' }, { offset: 1, color: '#2ecc71' }]) } },
   ].filter(d => d.value > 0)
 
   if (pieChart.value) {
@@ -314,7 +316,7 @@ function renderCharts(records) {
           data: months.map(m => monthlyMap[m].scope1.toFixed(2)),
           itemStyle: { color: '#e74c3c' },
           lineStyle: { width: 3 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(231,76,60,0.3)' }, { offset: 1, color: 'rgba(231,76,60,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(231,76,60,0.3)' }, { offset: 1, color: 'rgba(231,76,60,0.01)' }]) },
           symbol: 'circle', symbolSize: 8,
         },
         {
@@ -322,7 +324,7 @@ function renderCharts(records) {
           data: months.map(m => monthlyMap[m].scope2.toFixed(2)),
           itemStyle: { color: '#f39c12' },
           lineStyle: { width: 3 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(243,156,18,0.3)' }, { offset: 1, color: 'rgba(243,156,18,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(243,156,18,0.3)' }, { offset: 1, color: 'rgba(243,156,18,0.01)' }]) },
           symbol: 'circle', symbolSize: 8,
         },
         {
@@ -330,7 +332,7 @@ function renderCharts(records) {
           data: months.map(m => monthlyMap[m].scope3.toFixed(2)),
           itemStyle: { color: '#27ae60' },
           lineStyle: { width: 3 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(39,174,96,0.3)' }, { offset: 1, color: 'rgba(39,174,96,0.01)' }]) },
+          areaStyle: { color: createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(39,174,96,0.3)' }, { offset: 1, color: 'rgba(39,174,96,0.01)' }]) },
           symbol: 'circle', symbolSize: 8,
         },
       ],
@@ -358,7 +360,7 @@ function renderCharts(records) {
       yAxis: { type: 'category', data: sortedSources.map(s => s[0]).reverse(), axisLabel: { fontSize: 12, color: '#606266' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
       series: [{
         type: 'bar',
-        data: sortedSources.map(s => ({ value: s[1].toFixed(2), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#667eea' }, { offset: 1, color: '#764ba2' }]) } })).reverse(),
+        data: sortedSources.map(s => ({ value: s[1].toFixed(2), itemStyle: { color: createLinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#667eea' }, { offset: 1, color: '#764ba2' }]) } })).reverse(),
         itemStyle: { borderRadius: [0, 8, 8, 0] },
         barWidth: '55%',
         label: { show: true, position: 'right', fontSize: 11, color: '#606266', fontWeight: 500 },

@@ -132,6 +132,8 @@
 </template>
 
 <script setup>
+import { createLinearGradient } from '@/utils/echarts-helper.js'
+
 import { ref, onMounted, onBeforeUnmount, nextTick, markRaw } from 'vue'
 import * as echarts from 'echarts'
 import { List, Box, DataLine, InfoFilled, Histogram, Promotion } from '@element-plus/icons-vue'
@@ -535,8 +537,8 @@ function updateWaterfallChart(data) {
         percentage: s.percentage,
         itemStyle: {
           color: s.isHigh
-            ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ff4d4f' }, { offset: 1, color: '#c0392b' }])
-            : new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#00d4aa' }, { offset: 1, color: '#27ae60' }])
+            ? createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ff4d4f' }, { offset: 1, color: '#c0392b' }])
+            : createLinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#00d4aa' }, { offset: 1, color: '#27ae60' }])
         }
       })),
       itemStyle: { borderRadius: [4, 4, 0, 0] },
