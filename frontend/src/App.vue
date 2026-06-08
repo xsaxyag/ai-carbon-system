@@ -34,7 +34,7 @@
           <span>碳排报告</span>
         </el-menu-item>
         <el-menu-item index="/compare">
-          <el-icon><Scale /></el-icon>
+          <el-icon><ScaleToOriginal /></el-icon>
           <span>企业对比</span>
         </el-menu-item>
         <el-menu-item index="/price-alert">
@@ -77,7 +77,7 @@
           <span>碳全景3D</span>
         </el-menu-item>
         <el-menu-item index="/foot-print-3d">
-          <el-icon><Scale /></el-icon>
+          <el-icon><ScaleToOriginal /></el-icon>
           <span>碳足迹3D</span>
         </el-menu-item>
         <el-menu-item index="/digital-twin">
@@ -133,6 +133,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUser, clearAuth } from './utils/auth'
+import {
+  DataBoard, Coin, Camera, OfficeBuilding, Document,
+  ScaleToOriginal, Bell, TrendCharts, Wallet, Box, Guide,
+  FolderOpened, Promotion, Share, Lightning, MapLocation,
+  User, SwitchButton
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const currentDate = ref('')
