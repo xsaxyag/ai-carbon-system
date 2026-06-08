@@ -841,39 +841,13 @@ const createBuildings = () => {
     const geometry = new THREE.BoxGeometry(width, height, depth)
     const color = typeColors[building.type] || typeColors.other
     
-    // 玻璃幕墙材质（升级：更强调科技感 + 环境贴图）
-    // 创建简单的环境贴图（CubeTexture 替代方案：使用渐变纹理）
-    const pmremGenerator = new THREE.PMREMGenerator(renderer)
-    const envScene = new THREE.Scene()
-    envScene.background = new THREE.Color(0x0a1628)
-    
-    // 添加渐变光源到环境场景
-    const envLight1 = new THREE.DirectionalLight(0x00d4aa, 2)
-    envLight1.position.set(1, 1, 1)
-    envScene.add(envLight1)
-    const envLight2 = new THREE.DirectionalLight(0x1890ff, 1.5)
-    envLight2.position.set(-1, 0.5, -1)
-    envScene.add(envLight2)
-    const envLight3 = new THREE.DirectionalLight(0xffffff, 1)
-    envLight3.position.set(0, -1, 0)
-    envScene.add(envLight3)
-    
-    const envMap = pmremGenerator.fromScene(envScene).texture
-    
-    const material = new THREE.MeshPhysicalMaterial({
+    // 建筑材质 - 使用 MeshStandardMaterial（稳定可靠，不依赖envMap也能正常显示）
+    const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(color),
-      metalness: 0.6,         // 适中金属感
-      roughness: 0.25,        // 光滑表面
-      transparent: true,
-      opacity: isNightMode.value ? 0.7 : 0.85,
-      envMap: envMap,         // 环境贴图（关键！）
-      envMapIntensity: 2.5,   // 增强环境反射
-      clearcoat: 0.8,         // 加清漆层
-      clearcoatRoughness: 0.1,
+      metalness: 0.3,
+      roughness: 0.4,
       emissive: new THREE.Color(color),
-      emissiveIntensity: isNightMode.value ? 0.4 : 0.12,
-      transmission: 0.1,      // 轻微透射（玻璃感）
-      ior: 1.5
+      emissiveIntensity: isNightMode.value ? 0.5 : 0.15
     })
     
     const mesh = new THREE.Mesh(geometry, material)

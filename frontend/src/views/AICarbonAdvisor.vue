@@ -103,8 +103,9 @@
 import { ref, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { API_BASE as GLOBAL_API_BASE } from '../utils/auth'
 
-const API_BASE = '/api/v1/ai-advisor-v2'
+const API_BASE = `${GLOBAL_API_BASE}/ai-advisor-v2`
 
 const messages = ref([
   {
@@ -166,7 +167,7 @@ const sendMessage = async () => {
     const res = await axios.post(`${API_BASE}/chat`, {
       message: query,
       context: { company_id: localStorage.getItem('companyId') }
-    })
+    }, { timeout: 65000 })  // GLM-5.1 推理可能较慢
 
     messages.value.push({
       role: 'assistant',
@@ -226,7 +227,7 @@ const submitCommand = async () => {
     const res = await axios.post(`${API_BASE}/one-command`, {
       command: cmd.id,
       params: commandForm.value
-    })
+    }, { timeout: 65000 })
 
     messages.value.push({
       role: 'assistant',

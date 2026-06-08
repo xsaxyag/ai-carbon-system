@@ -327,7 +327,7 @@ onMounted(async () => {
     await nextTick()
     
     console.log('[SupplyChainGraph] DOM更新完成，检查容器...', {
-      container: threeContainer.value,
+      container: !!threeContainer.value,
       containerWidth: threeContainer.value?.clientWidth,
       containerHeight: threeContainer.value?.clientHeight
     })
@@ -336,7 +336,7 @@ onMounted(async () => {
       throw new Error('3D容器未找到，请确保template中有 ref="threeContainer"')
     }
     
-    // 初始化3D场景
+    // 初始化3D场景（无论API是否成功都执行）
     initThreeScene()
     
     // 更新统计信息
@@ -419,9 +419,8 @@ async function fetchNetworkData() {
     error.value = '数据加载失败: ' + err.message
     console.warn('[API] 加载失败，使用mock数据兜底', err)
     // 保持mock数据不变
-  } finally {
-    loading.value = false
   }
+  // 注意：不在这里设 loading.value = false，由 onMounted 统一控制
 }
 
 function initThreeScene() {
@@ -430,10 +429,14 @@ function initThreeScene() {
     return
   }
   
+  // 确保容器有有效尺寸
+  const containerWidth = threeContainer.value.clientWidth || threeContainer.value.offsetWidth || 800
+  const containerHeight = threeContainer.value.clientHeight || threeContainer.value.offsetHeight || 600
+  
   console.log('[initThreeScene] 开始初始化3D场景...', {
-    container: threeContainer.value,
-    width: threeContainer.value.clientWidth,
-    height: threeContainer.value.clientHeight
+    container: !!threeContainer.value,
+    width: containerWidth,
+    height: containerHeight
   })
   
   try {
