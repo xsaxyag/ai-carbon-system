@@ -382,9 +382,9 @@ async function fetchNetworkData() {
       emission: n.emissions || 0,
       carbonFootprint: n.carbon_intensity || 0,
       riskLevel: n.risk_level || 'medium',
-      x: (n.x || 0) - 50,
-      y: (n.y || 0) - 10,
-      z: (n.z || 0) - 50
+      x: (n.x || 0),
+      y: (n.y || 0) + 20,
+      z: (n.z || 0)
     }))
     const mappedLinks = (networkDataRaw.links || []).map(l => ({
       source: l.source || 0,
