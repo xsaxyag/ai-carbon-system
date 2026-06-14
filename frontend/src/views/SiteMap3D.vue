@@ -201,6 +201,69 @@
       </div>
     </el-drawer>
 
+    <!-- 优化方案对话框 -->
+    <el-dialog v-model="showOptDialog" title="💡 减排优化方案" width="580px" :close-on-click-modal="true">
+      <template #title>
+        <span>💡 <b>{{ selectedBuilding?.name }}</b> — 减排优化方案</span>
+      </template>
+      <div v-if="optimizationSuggestions && optimizationSuggestions.length > 0" class="opt-suggestions">
+        <div v-for="(item, idx) in optimizationSuggestions" :key="idx" class="opt-card" :style="{borderLeftColor: ['#409eff','#67c23a','#e6a23c','#f56c6c','#909399'][idx % 5]}">
+          <div class="opt-card-header">
+            <span class="opt-title">{{ item.title }}</span>
+            <el-tag size="small" type="success">{{ item.saving }}</el-tag>
+          </div>
+          <p class="opt-desc">{{ item.desc }}</p>
+        </div>
+      </div>
+      <el-empty v-else description="暂无优化建议" />
+      <template #footer>
+        <el-button @click="showOptDialog = false">关闭</el-button>
+        <el-button type="primary" @click="showOptDialog = false; drillDown()">查看下钻分析</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 下钻分析对话框 -->
+    <el-dialog v-model="showDrillDialog" title="📊 碳排放下钻分析" width="650px" :close-on-click-modal="true">
+      <template #title>
+        <span>📊 <b>{{ drillDownData?.name }}</b> — 碳排放下钻分析</span>
+      </template>
+      <div v-if="drillDownData" class="drill-content">
+        <!-- Scope 分类 -->
+        <h4 style="margin:0 0 10px;color:#303133;">排放构成（Scope分类）</h4>
+        <div style="display:flex;gap:12px;margin-bottom:18px;">
+          <div style="flex:1;background:#fef0f0;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:bold;color:#f56c6c;">{{ drillDownData.scope1 }} t</div>
+            <div style="color:#909399;font-size:13px;margin-top:4px;">Scope 1 直接排放</div>
+            <el-progress :percentage="Math.round(drillDownData.scope1/drillDownData.total*100)" color="#f56c6c" :stroke-width="8" style="margin-top:8px;" />
+          </div>
+          <div style="flex:1;background:#ecf5ff;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:bold;color:#409eff;">{{ drillDownData.scope2 }} t</div>
+            <div style="color:#909399;font-size:13px;margin-top:4px;">Scope 2 间接排放（外购电力）</div>
+            <el-progress :percentage="Math.round(drillDownData.scope2/drillDownData.total*100)" color="#409eff" :stroke-width="8" style="margin-top:8px;" />
+          </div>
+          <div style="flex:1;background:#f0f9eb;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:22px;font-weight:bold;color:#67c23a;">{{ drillDownData.scope3 }} t</div>
+            <div style="color:#909399;font-size:13px;margin-top:4px;">Scope 3 价值链排放</div>
+            <el-progress :percentage="Math.round(drillDownData.scope3/drillDownData.total*100)" color="#67c23a" :stroke-width="8" style="margin-top:8px;" />
+          </div>
+        </div>
+        <!-- 排放源明细 -->
+        <h4 style="margin:0 0 10px;color:#303133;">排放源明细</h4>
+        <div v-for="src in drillDownData.breakdown" :key="src.name" style="display:flex;align-items:center;margin-bottom:8px;">
+          <span style="width:90px;font-size:13px;">{{ src.name }}</span>
+          <el-progress :percentage="src.pct" :color="src.color" :stroke-width="10" style="flex:1;margin:0 10px;" />
+          <span style="width:70px;text-align:right;font-size:13px;color:#606266;">{{ src.value }} t</span>
+        </div>
+        <!-- 月度趋势 -->
+        <h4 style="margin:16px 0 10px;color:#303133;">月度碳排放趋势</h4>
+        <div ref="drillChartRef" style="width:100%;height:200px;"></div>
+      </div>
+      <template #footer>
+        <el-button @click="showDrillDialog = false">关闭</el-button>
+        <el-button type="primary" @click="showDrillDialog = false; showOptimizationPlan()">查看优化方案</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 标注对话框 -->
     <el-dialog v-model="annotationDialogVisible" title="建筑标注" width="900px" :close-on-click-modal="false">
       <div class="annotation-container">
@@ -309,9 +372,13 @@ let composer = null  // Bloom 后处理合成器
 
 // 状态
 const threeContainer = ref(null)
+const drillChartRef = ref(null)
 const trendChart = ref(null)
 const carbonTrendData = ref(null)
 const optimizationSuggestions = ref(null)
+const showOptDialog = ref(false)
+const showDrillDialog = ref(false)
+const drillDownData = ref(null)
 const uploadedImage = ref('')
 const imageFile = ref(null)
 const converting = ref(false)
@@ -596,8 +663,8 @@ const initThreeScene = () => {
   
   // 调用 createThreeScene，它内部会创建 renderer 并添加到 DOM
   threeSceneObj = createThreeScene(threeContainer.value, {
-    background: 0x0a1628,
-    enablePostProcessing: true,
+    background: 0xe8f4f8,
+    enablePostProcessing: false,
     autoRotate: false,
     autoRotateSpeed: 0
   })
@@ -613,14 +680,7 @@ const initThreeScene = () => {
   camera.position.set(80, 60, 80)
   camera.lookAt(0, 0, 0)
   
-  // 调整 Bloom 后处理参数（createThreeScene 默认 strength=0.6，这里改为 1.2）
-  if (composer && composer.passes && composer.passes.length > 1) {
-    const bloomPass = composer.passes[1]  // 第二个 pass 是 UnrealBloomPass
-    if (bloomPass && bloomPass.strength !== undefined) {
-      bloomPass.strength = 1.2
-      console.log('[SiteMap3D] Bloom strength 已调整为 1.2')
-    }
-  }
+  // Bloom 已禁用，避免将正常材质压黑
   
   // 根据日夜模式更新背景
   updateSceneBackground()
@@ -846,14 +906,9 @@ const createBuildings = () => {
     const geometry = new THREE.BoxGeometry(width, height, depth)
     const color = typeColors[building.type] || typeColors.other
     
-    // 建筑材质 - 使用 MeshPhongMaterial（与其他3D页面一致，弱光下也能正常显示）
-    const material = new THREE.MeshPhongMaterial({
-      color: new THREE.Color(color),
-      emissive: new THREE.Color(color),
-      emissiveIntensity: isNightMode.value ? 0.5 : 0.2,
-      shininess: 80,
-      transparent: true,
-      opacity: isNightMode.value ? 0.85 : 0.92
+    // 建筑材质 - MeshBasicMaterial 保证在任何光照下都可见（颜色纯正）
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color)
     })
     
     const mesh = new THREE.Mesh(geometry, material)
@@ -899,12 +954,8 @@ const addRoofDecoration = (mesh, width, depth) => {
   
   // 添加屋顶
   const roofGeometry = new THREE.ConeGeometry(roofRadius, 3, 4)
-  const roofMaterial = new THREE.MeshPhongMaterial({ 
-    color: 0xcc6633,
-    emissive: 0x331100,
-    emissiveIntensity: 0.4,
-    shininess: 80,
-    specular: 0x888888
+  const roofMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xcc6633
   })
   const roof = new THREE.Mesh(roofGeometry, roofMaterial)
   roof.position.set(mesh.position.x, meshHeight + 1.5, mesh.position.z)
@@ -1319,16 +1370,59 @@ const stopVideoRecording = () => {
   isRecording.value = false
 }
 
-// 查看优化方案
+// 查看优化方案 - 弹出对话框展示针对选中建筑的减排建议
 const showOptimizationPlan = () => {
-  ElMessage.info('正在获取AI优化建议...')
-  // 可以调用API获取优化建议
+  if (!selectedBuilding.value) {
+    ElMessage.warning('请先点击选择一个建筑')
+    return
+  }
+  const b = selectedBuilding.value
+  const typeNames = { production: '生产车间', warehouse: '仓库', office: '办公楼', lab: '实验室', other: '其他' }
+  
+  // 根据建筑类型和排放强度生成针对性建议
+  let suggestions = []
+  if (b.carbon_intensity > 8) {
+    suggestions.push({ title: '能源结构优化', desc: `当前碳排放强度 ${b.carbon_intensity} kgCO₂/m² 偏高，建议：${b.energy_type.includes('天然气') ? '引入电锅炉替代燃气锅炉，减少直接排放' : '增加屋顶光伏覆盖比例至60%以上'}`, saving: `${Math.round(b.carbon_emission * 0.25)} tCO₂/年` })
+  }
+  if (b.green_energy_ratio < 30) {
+    suggestions.push({ title: '绿电采购提升', desc: `当前绿电比例仅 ${b.green_energy_ratio}%，建议通过PPA购电协议提升至50%以上`, saving: `${Math.round(b.carbon_emission * 0.15)} tCO₂/年` })
+  }
+  suggestions.push({ title: '能效设备升级', desc: '更换LED照明+变频空调+智能能耗管理系统，预计节能20%', saving: `${Math.round(b.carbon_emission * 0.2)} tCO₂/年` })
+  if (b.type === 'production') {
+    suggestions.push({ title: '工艺流程优化', desc: '引入余热回收系统，将废气/废水热能重新利用于供暖或预热', saving: `${Math.round(b.carbon_emission * 0.1)} tCO₂/年` })
+  }
+  suggestions.push({ title: '碳管理数字化', desc: '部署实时碳排放监测系统，建立碳数据台账，支撑后续碳交易申报', saving: '管理提效' })
+  
+  optimizationSuggestions.value = suggestions
+  showOptDialog.value = true
 }
 
-// 下钻分析
+// 下钻分析 - 展示该建筑的详细碳排放构成（按Scope分类）
 const drillDown = () => {
-  ElMessage.info('正在加载详细分析数据...')
-  // 可以跳转到详细分析页面
+  if (!selectedBuilding.value) {
+    ElMessage.warning('请先点击选择一个建筑')
+    return
+  }
+  const b = selectedBuilding.value
+  drillDownData.value = {
+    name: b.name,
+    total: b.carbon_emission,
+    scope1: Math.round(b.carbon_emission * (b.energy_type.includes('天然气') ? 0.35 : 0.15)),
+    scope2: Math.round(b.carbon_emission * (b.type === 'production' ? 0.5 : 0.6)),
+    scope3: Math.round(b.carbon_emission * (b.type === 'production' ? 0.15 : 0.25)),
+    monthly: Array.from({ length: 12 }, (_, i) => ({
+      month: `${i + 1}月`,
+      value: Math.round(b.carbon_emission * (0.6 + Math.sin((i - 3) / Math.PI) * 0.4) * (0.85 + Math.random() * 0.3))
+    })),
+    breakdown: [
+      { name: '电力消耗', value: Math.round(b.energy_consumption * 0.0006), pct: 45, color: '#409eff' },
+      { name: '天然气', value: Math.round(b.carbon_emission * (b.energy_type.includes('天然气') ? 0.3 : 0.05)), pct: b.energy_type.includes('天然气') ? 28 : 5, color: '#e6a23c' },
+      { name: '蒸汽/供热', value: Math.round(b.carbon_emission * 0.12), pct: 12, color: '#f56c6c' },
+      { name: '交通运输', value: Math.round(b.carbon_emission * 0.08), pct: 8, color: '#67c23a' },
+      { name: '其他排放源', value: Math.round(b.carbon_emission * 0.07), pct: 7, color: '#909399' }
+    ]
+  }
+  showDrillDialog.value = true
 }
 
 // 组件挂载

@@ -228,10 +228,11 @@ onMounted(async () => {
     loading.value = true
     error.value = ''
     await loadProductData(selectedProduct.value)
+    // 关键：先设loading=false让容器可见，再初始化3D
+    loading.value = false
     await nextTick()
     initThreeScene()
     initWaterfallChart()
-    loading.value = false
   } catch (err) {
     error.value = '初始化失败: ' + err.message
     loading.value = false
@@ -377,6 +378,11 @@ function initThreeScene() {
   // 相机位置
   threeSceneObj.camera.position.set(0, 40, 80)
   threeSceneObj.controls.target.set(0, 10, 0)
+
+  // 启动渲染循环
+  if (threeSceneObj.start) {
+    threeSceneObj.start()
+  }
 }
 
 function updateThreeScene(tree) {
