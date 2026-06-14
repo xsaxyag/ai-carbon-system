@@ -244,7 +244,10 @@ onBeforeUnmount(() => {
     threeSceneObj.destroy()
     threeSceneObj = null
   }
-  waterfallChartInstance?.dispose()
+  if (waterfallChartInstance) {
+    waterfallChartInstance.dispose()
+    waterfallChartInstance = null
+  }
 })
 
 async function loadProductData(productId) {
@@ -351,9 +354,20 @@ function handleNodeClick(data) {
 function initThreeScene() {
   if (!threeContainer.value) return
 
+  // 防御性检查：确保容器有有效尺寸
+  const cw = threeContainer.value.clientWidth
+  const ch = threeContainer.value.clientHeight
+  if (!cw || !ch) {
+    console.warn('[CarbonFootprint3D] 容器尺寸无效，等待重试... cw=', cw, 'ch=', ch)
+    setTimeout(() => {
+      if (threeContainer.value?.clientWidth) initThreeScene()
+    }, 200)
+    return
+  }
+
   threeSceneObj = createThreeScene(threeContainer.value, {
     background: 0x0a1628,
-    enablePostProcessing: true,
+    enablePostProcessing: false, // 禁用 bloom，避免 0×0 render target WebGL 错误
     autoRotate: false,
     autoRotateSpeed: 0
   })
@@ -492,7 +506,7 @@ function initWaterfallChart() {
 }
 
 function updateWaterfallChart(data) {
-  if (!waterfallChartInstance) return
+  if (!waterfallChartInstance || waterfallChartInstance.isDisposed()) return
 
   const stages = data.stages
   const total = data.total

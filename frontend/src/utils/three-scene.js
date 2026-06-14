@@ -56,10 +56,13 @@ export function createThreeScene(container, options = {}) {
   // 后期处理
   let composer = null
   if (enablePostProcessing) {
+    // 防御性检查：确保容器有有效尺寸，否则跳过后处理
+    const cw = Math.max(container.clientWidth || 0, 1)
+    const ch = Math.max(container.clientHeight || 0, 1)
     composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
     const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(container.clientWidth, container.clientHeight),
+      new THREE.Vector2(cw, ch),
       0.6,  // strength
       0.4,  // radius
       0.85  // threshold
@@ -94,6 +97,11 @@ export function createThreeScene(container, options = {}) {
 
   function animate() {
     if (isDestroyed) return
+    // 防御性检查：容器尺寸为0时跳过渲染，避免 WebGL 错误
+    if (!container.clientWidth || !container.clientHeight) {
+      animationId = requestAnimationFrame(animate)
+      return
+    }
     animationId = requestAnimationFrame(animate)
     controls?.update()
     animHandlers.forEach(handler => handler())

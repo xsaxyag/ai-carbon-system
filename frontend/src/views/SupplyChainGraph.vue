@@ -431,17 +431,27 @@ function initThreeScene() {
   // 确保容器有有效尺寸
   const containerWidth = threeContainer.value.clientWidth || threeContainer.value.offsetWidth || 800
   const containerHeight = threeContainer.value.clientHeight || threeContainer.value.offsetHeight || 600
-  
+
   console.log('[initThreeScene] 开始初始化3D场景...', {
     container: !!threeContainer.value,
     width: containerWidth,
     height: containerHeight
   })
-  
+
+  // 防御性检查：确保容器有实际尺寸
+  if (!threeContainer.value.clientWidth || !threeContainer.value.clientHeight) {
+    console.warn('[SupplyChainGraph] 容器尺寸无效，等待 DOM 就绪...', {
+      cw: threeContainer.value.clientWidth,
+      ch: threeContainer.value.clientHeight
+    })
+    setTimeout(initThreeScene, 300)
+    return
+  }
+
   try {
     threeSceneObj = createThreeScene(threeContainer.value, {
       background: 0x0a1628,
-      enablePostProcessing: true,
+      enablePostProcessing: false, // 禁用 bloom，避免 0×0 render target WebGL 错误
       autoRotate: false,
       autoRotateSpeed: 0
     })
