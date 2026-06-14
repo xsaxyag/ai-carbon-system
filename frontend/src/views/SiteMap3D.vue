@@ -173,6 +173,17 @@
       </div>
     </el-card>
 
+    <!-- 底部操作栏 -->
+    <div v-if="sceneReady" class="bottom-action-bar">
+      <el-button type="primary" @click="showOptimizationPlan" :disabled="!selectedBuilding">
+        💡 查看优化方案
+      </el-button>
+      <el-button type="warning" @click="drillDown" :disabled="!selectedBuilding">
+        📊 下钻分析
+      </el-button>
+      <span v-if="!selectedBuilding" class="action-hint">⚠️ 请先点击3D场景中的建筑进行选择</span>
+    </div>
+
     <!-- 建筑信息面板 -->
     <el-drawer v-model="buildingInfoVisible" title="建筑碳排放详情" size="30%">
       <div v-if="selectedBuilding" class="building-info">
@@ -1792,4 +1803,20 @@ const onWindowResize = () => {
 .rec-metrics { display: flex; gap: 12px; flex-wrap: wrap; }
 .rec-metrics .metric { font-size: 11px; color: #909399; }
 .rec-metrics .metric b { color: #606266; }
+
+/* 底部操作栏 */
+.bottom-action-bar {
+  margin-top: 16px;
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.action-hint {
+  font-size: 13px;
+  color: #e6a23c;
+}
 </style>
