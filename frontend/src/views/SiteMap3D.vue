@@ -152,6 +152,25 @@
           </el-col>
         </el-row>
       </div>
+
+      <!-- 碳减排路径推荐 -->
+      <div v-if="sceneReady" class="reduction-panel">
+        <div class="panel-title-row"><el-icon><Promotion /></el-icon> 碳减排路径推荐</div>
+        <div class="rec-list">
+          <div v-for="(item, idx) in reductionRecommendations" :key="idx" class="rec-card" :class="'priority-' + item.priority">
+            <div class="rec-priority">P{{ item.priority }}</div>
+            <div class="rec-content">
+              <div class="rec-title">{{ item.title }}</div>
+              <div class="rec-desc">{{ item.description }}</div>
+              <div class="rec-metrics">
+                <span class="metric"><b>预计减排:</b> {{ item.reduction }} tCO₂/年</span>
+                <span class="metric"><b>投资成本:</b> {{ item.cost }} 万元</span>
+                <span class="metric"><b>回收期:</b> {{ item.payback }} 年</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </el-card>
 
     <!-- 建筑信息面板 -->
@@ -345,7 +364,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
+import { UploadFilled, Promotion } from '@element-plus/icons-vue'
 import { API_BASE } from '../utils/auth'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -379,6 +398,15 @@ const optimizationSuggestions = ref(null)
 const showOptDialog = ref(false)
 const showDrillDialog = ref(false)
 const drillDownData = ref(null)
+
+// 碳减排路径推荐数据
+const reductionRecommendations = ref([
+  { priority: 1, title: '分布式光伏发电系统', description: '在厂房屋顶安装光伏板，利用闲置空间发电，降低外购电力碳排放', reduction: 1250, cost: 380, payback: 4.2 },
+  { priority: 2, title: '余热回收利用改造', description: '对生产设备余热进行回收，用于供暖和工艺预热，减少天然气消耗', reduction: 680, cost: 150, payback: 2.8 },
+  { priority: 3, title: '高效电机替换计划', description: '将低效电机逐步替换为IE3/IE4超高效电机，降低电力损耗', reduction: 320, cost: 95, payback: 3.5 },
+  { priority: 4, title: '智能能源管理系统', description: '部署EMS系统实时监控能耗，AI优化用能策略，识别浪费环节', reduction: 450, cost: 120, payback: 2.6 },
+  { priority: 5, title: '绿色物流优化', description: '优化运输路线、提升装载率、引入电动叉车和新能源运输车辆', reduction: 210, cost: 65, payback: 3.1 }
+])
 const uploadedImage = ref('')
 const imageFile = ref(null)
 const converting = ref(false)
@@ -1711,4 +1739,57 @@ const onWindowResize = () => {
   color: #909399;
   margin-top: 5px;
 }
+
+/* 碳减排路径推荐 */
+.reduction-panel {
+  margin-top: 16px;
+  padding: 12px 15px;
+  background: #f0f5ff;
+  border-radius: 8px;
+  border: 1px solid #d9e8ff;
+}
+.panel-title-row {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rec-list { display: flex; flex-direction: column; gap: 8px; }
+.rec-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 6px;
+  border-left: 3px solid #409eff;
+  transition: box-shadow .2s;
+}
+.rec-card:hover { box-shadow: 0 2px 8px rgba(64,158,255,.15); }
+.rec-card.priority-1 { border-left-color: #f56c6c; }
+.rec-card.priority-2 { border-left-color: #e6a23c; }
+.rec-card.priority-3 { border-left-color: #409eff; }
+.rec-card.priority-4 { border-left-color: #67c23a; }
+.rec-card.priority-5 { border-left-color: #909399; }
+.rec-priority {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  line-height: 28px; text-align: center;
+  border-radius: 50%;
+  font-size: 12px; font-weight: bold; color: #fff;
+  background: #409eff;
+}
+.priority-1 .rec-priority { background: #f56c6c; }
+.priority-2 .rec-priority { background: #e6a23c; }
+.priority-3 .rec-priority { background: #409eff; }
+.priority-4 .rec-priority { background: #67c23a; }
+.priority-5 .rec-priority { background: #909399; }
+.rec-content { flex: 1; min-width: 0; }
+.rec-title { font-size: 13px; font-weight: 600; color: #303133; margin-bottom: 3px; }
+.rec-desc { font-size: 12px; color: #606266; line-height: 1.5; margin-bottom: 6px; }
+.rec-metrics { display: flex; gap: 12px; flex-wrap: wrap; }
+.rec-metrics .metric { font-size: 11px; color: #909399; }
+.rec-metrics .metric b { color: #606266; }
 </style>
