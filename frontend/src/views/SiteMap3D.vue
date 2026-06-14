@@ -900,10 +900,11 @@ const addRoofDecoration = (mesh, width, depth) => {
   // 添加屋顶
   const roofGeometry = new THREE.ConeGeometry(roofRadius, 3, 4)
   const roofMaterial = new THREE.MeshPhongMaterial({ 
-    color: 0x555555,
-    emissive: 0x222222,
-    emissiveIntensity: 0.3,
-    shininess: 60
+    color: 0xcc6633,
+    emissive: 0x331100,
+    emissiveIntensity: 0.4,
+    shininess: 80,
+    specular: 0x888888
   })
   const roof = new THREE.Mesh(roofGeometry, roofMaterial)
   roof.position.set(mesh.position.x, meshHeight + 1.5, mesh.position.z)
@@ -922,17 +923,17 @@ const addBuildingLabel = (mesh, text, height) => {
   canvas.height = 256
   
   // 绘制背景
-  context.fillStyle = isNightMode.value ? 'rgba(20, 20, 40, 0.9)' : 'rgba(0, 0, 0, 0.7)'
+  context.fillStyle = isNightMode.value ? 'rgba(20, 30, 60, 0.85)' : 'rgba(30, 60, 120, 0.75)'
   context.fillRect(0, 0, canvas.width, canvas.height)
   
   // 绘制边框
-  context.strokeStyle = '#409eff'
-  context.lineWidth = 4
+  context.strokeStyle = '#67c23a'
+  context.lineWidth = 3
   context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4)
   
   // 绘制文字
-  context.font = 'bold 36px Arial'
-  context.fillStyle = 'white'
+  context.font = 'bold 40px Microsoft YaHei, Arial'
+  context.fillStyle = '#e6f0ff'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   
@@ -970,7 +971,7 @@ const addBuildingLabel = (mesh, text, height) => {
     mesh.position.y + labelHeight / 2 + 8,
     mesh.position.z
   )
-  sprite.scale.set(12, 6, 1)
+  sprite.scale.set(8, 4, 1)
   scene.add(sprite)
   
   glowSprites.push(sprite)
