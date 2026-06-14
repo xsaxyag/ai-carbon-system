@@ -171,13 +171,14 @@ const sceneModes = [
 
 onMounted(async () => {
   try {
-    loading.value = true
     error.value = ''
     await fetchAllData()
+    // 必须先让容器可见，否则 v-show 隐藏导致 clientWidth/clientHeight=0
+    // WebGL framebuffer 为 0×0 会产生 INVALID_FRAMEBUFFER_OPERATION
+    loading.value = false
     await nextTick()
     initThreeScene()
     initCharts()
-    loading.value = false
   } catch (err) {
     error.value = '初始化失败: ' + err.message
     loading.value = false
