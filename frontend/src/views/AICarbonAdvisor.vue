@@ -173,11 +173,19 @@ const sendMessage = async () => {
       role: 'assistant',
       content: res.data.reply || '抱歉，我无法理解您的问题。'
     })
+
+    if (res.data.suggestions && res.data.suggestions.length > 0) {
+      messages.value.push({
+        role: 'assistant',
+        content: '💡 您可能还想了解：' + res.data.suggestions.map((s, i) => `${i+1}. ${s}`).join(' | ')
+      })
+    }
   } catch (error) {
-    ElMessage.error('请求失败: ' + (error.response?.data?.detail || error.message))
+    const detail = error.response?.data?.detail || error.message
+    ElMessage.error('请求失败: ' + detail)
     messages.value.push({
       role: 'assistant',
-      content: '抱歉，服务暂时不可用，请稍后重试。'
+      content: `抱歉，服务暂时不可用（${detail}），请稍后重试。`
     })
   } finally {
     loading.value = false
@@ -221,23 +229,33 @@ const submitCommand = async () => {
   }
 
   messages.value.push({ role: 'user', content: query })
+  userInput.value = ''
   await scrollToBottom()
 
   try {
-    const res = await axios.post(`${API_BASE}/one-command`, {
-      command: cmd.id,
-      params: commandForm.value
+    // 快捷指令也走 /chat 端点，让意图识别+LLM真正工作
+    const res = await axios.post(`${API_BASE}/chat`, {
+      message: query,
+      context: { company_id: localStorage.getItem('companyId') }
     }, { timeout: 65000 })
 
     messages.value.push({
       role: 'assistant',
-      content: res.data.result || res.data.message || '执行成功'
+      content: res.data.reply || '抱歉，我无法理解您的问题。'
     })
+
+    // 如果有建议操作，追加提示
+    if (res.data.suggestions && res.data.suggestions.length > 0) {
+      messages.value.push({
+        role: 'assistant',
+        content: '💡 您可能还想了解：' + res.data.suggestions.map((s, i) => `${i+1}. ${s}`).join(' | ')
+      })
+    }
   } catch (error) {
     ElMessage.error('执行失败: ' + (error.response?.data?.detail || error.message))
     messages.value.push({
       role: 'assistant',
-      content: '抱歉，指令执行失败，请稍后重试。'
+      content: '抱歉，服务暂时不可用，请稍后重试。'
     })
   } finally {
     loading.value = false

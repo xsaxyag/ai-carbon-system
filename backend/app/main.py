@@ -34,9 +34,10 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# 自定义CORS中间件
+# 自定义CORS中间件 - 处理预检请求
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # 处理所有请求的CORS头
         if request.method == "OPTIONS":
             response = Response(status_code=200)
             response.headers["Access-Control-Allow-Origin"] = "*"
@@ -44,9 +45,14 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
             response.headers["Access-Control-Max-Age"] = "86400"
             return response
+        
         response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        # 确保所有响应都有CORS头
+        origin = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin if origin != "*" else "*"
         response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         return response
 
 app.add_middleware(CustomCORSMiddleware)

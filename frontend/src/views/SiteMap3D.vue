@@ -827,6 +827,9 @@ const updateLighting = () => {
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0)
     scene.add(ambientLight)
     
+    const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x3a5f3a, 0.4)
+    scene.add(hemisphereLight)
+    
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2)
     directionalLight.position.set(50, 100, 50)
     directionalLight.castShadow = true
@@ -978,6 +981,7 @@ const createBuildings = () => {
   
   // 添加点击事件监听
   renderer.domElement.addEventListener('click', onBuildingClick)
+  renderer.domElement.addEventListener('mousemove', onBuildingHover)
 }
 
 // 添加屋顶装饰
@@ -1073,7 +1077,7 @@ const createParticleSystem = () => {
     scene.remove(particleSystem)
   }
   
-  const particleCount = 2000
+  const particleCount = 1000
   const positions = new Float32Array(particleCount * 3)
   const colors = new Float32Array(particleCount * 3)
   const sizes = new Float32Array(particleCount)
@@ -1172,6 +1176,37 @@ const onBuildingClick = (event) => {
     const buildingIndex = mesh.userData.buildingIndex
     selectedBuilding.value = { ...buildings.value[buildingIndex], ...mesh.userData }
     buildingInfoVisible.value = true
+  }
+}
+
+// 建筑悬停事件
+let hoveredMesh = null
+const onBuildingHover = (event) => {
+  const rect = renderer.domElement.getBoundingClientRect()
+  const mouse = new THREE.Vector2(
+    ((event.clientX - rect.left) / rect.width) * 2 - 1,
+    -((event.clientY - rect.top) / rect.height) * 2 + 1
+  )
+  
+  const raycaster = new THREE.Raycaster()
+  raycaster.setFromCamera(mouse, camera)
+  
+  const intersects = raycaster.intersectObjects(buildingMeshes)
+  
+  // 恢复之前的高亮
+  if (hoveredMesh && (!intersects.length || intersects[0].object !== hoveredMesh)) {
+    hoveredMesh.material.opacity = 1
+    renderer.domElement.style.cursor = 'default'
+    hoveredMesh = null
+  }
+  
+  // 高亮当前悬停的建筑
+  if (intersects.length > 0) {
+    const mesh = intersects[0].object
+    if (mesh !== hoveredMesh) {
+      hoveredMesh = mesh
+      renderer.domElement.style.cursor = 'pointer'
+    }
   }
 }
 
@@ -1521,6 +1556,12 @@ const loadDefaultBuildings = () => {
 
 // 组件卸载
 onBeforeUnmount(() => {
+  // 移除事件监听
+  if (renderer && renderer.domElement) {
+    renderer.domElement.removeEventListener('click', onBuildingClick)
+    renderer.domElement.removeEventListener('mousemove', onBuildingHover)
+  }
+  
   // 使用 threeSceneObj.destroy() 统一清理资源
   if (threeSceneObj && threeSceneObj.destroy) {
     threeSceneObj.destroy()
