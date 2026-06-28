@@ -1071,18 +1071,25 @@ const addBuildingLabel = (mesh, text, height) => {
 const createParticleSystem = () => {
   if (particleSystem) {
     scene.remove(particleSystem)
+    particleSystem.geometry?.dispose()
+    particleSystem.material?.dispose()
   }
   
-  const particleCount = 2000
+  const particleCount = 1000  // 减少粒子数量，避免性能问题
   const positions = new Float32Array(particleCount * 3)
   const colors = new Float32Array(particleCount * 3)
   const sizes = new Float32Array(particleCount)
   
   for (let i = 0; i < particleCount; i++) {
-    // 分布在整个园区上空
-    positions[i * 3] = (Math.random() - 0.5) * 200
-    positions[i * 3 + 1] = Math.random() * 100 + 10
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 200
+    // 分布在整个园区上空，确保数值有效
+    const x = (Math.random() - 0.5) * 200
+    const y = Math.random() * 100 + 10
+    const z = (Math.random() - 0.5) * 200
+    
+    // 防御性检查：确保不是 NaN
+    positions[i * 3] = isNaN(x) ? 0 : x
+    positions[i * 3 + 1] = isNaN(y) ? 10 : y
+    positions[i * 3 + 2] = isNaN(z) ? 0 : z
     
     // 碳排放相关颜色（绿色=低碳，红色=高碳）
     const color = new THREE.Color()
