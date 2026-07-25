@@ -4,6 +4,7 @@
     <div class="advisor-header">
       <h2>🤖 AI智能碳顾问</h2>
       <p class="subtitle">一句话完成碳管理任务</p>
+      <el-tag size="small" type="warning" class="llm-status">知识库模式（AI大模型暂不可用）</el-tag>
     </div>
 
     <!-- Quick Commands Panel -->
@@ -169,9 +170,12 @@ const sendMessage = async () => {
       context: { company_id: localStorage.getItem('companyId') }
     }, { timeout: 65000 })  // GLM-5.1 推理可能较慢
 
+    const reply = res.data.reply || '抱歉，我无法理解您的问题。'
+    // LLM不可用提示
+    const llmOfflineFlag = reply.includes('提示：配置AI大模型') || reply.includes('降级方案')
     messages.value.push({
       role: 'assistant',
-      content: res.data.reply || '抱歉，我无法理解您的问题。'
+      content: reply + (llmOfflineFlag ? '' : '')
     })
   } catch (error) {
     ElMessage.error('请求失败: ' + (error.response?.data?.detail || error.message))
@@ -225,13 +229,13 @@ const submitCommand = async () => {
 
   try {
     const res = await axios.post(`${API_BASE}/one-command`, {
-      command: cmd.id,
+      command: query,
       params: commandForm.value
     }, { timeout: 65000 })
 
     messages.value.push({
       role: 'assistant',
-      content: res.data.result || res.data.message || '执行成功'
+      content: res.data.message || '执行成功'
     })
   } catch (error) {
     ElMessage.error('执行失败: ' + (error.response?.data?.detail || error.message))
@@ -256,28 +260,32 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #fff;
   border-radius: 8px;
 }
 
 .advisor-header {
   text-align: center;
   margin-bottom: 20px;
-  color: white;
 }
 
 .advisor-header h2 {
   margin: 0;
   font-size: 24px;
+  color: #303133;
 }
 
 .subtitle {
   margin: 8px 0 0;
-  opacity: 0.9;
+  color: #909399;
+}
+
+.llm-status {
+  margin-top: 8px;
 }
 
 .quick-commands {
-  background: rgba(255, 255, 255, 0.95);
+  background: #f5f7fa;
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -286,7 +294,7 @@ onMounted(() => {
 .quick-commands h3 {
   margin: 0 0 12px;
   font-size: 16px;
-  color: #333;
+  color: #303133;
 }
 
 .command-grid {
@@ -314,11 +322,12 @@ onMounted(() => {
 
 .chat-container {
   flex: 1;
-  background: rgba(255, 255, 255, 0.95);
+  background: #f5f7fa;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid #e4e7ed;
 }
 
 .messages {

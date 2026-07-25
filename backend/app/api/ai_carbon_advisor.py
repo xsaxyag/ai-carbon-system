@@ -524,6 +524,21 @@ async def execute_one_command(request: OneCommandRequest):
 
 # === 辅助函数 ===
 
+def _generate_suggestions(intent: str, reply: str) -> list:
+    """根据意图生成建议追问"""
+    suggestion_map = {
+        "lca_modeling": ["帮我搭建具体产品的LCA模型", "查看已有模型数据", "学习LCA建模方法"],
+        "carbon_report": ["生成月度碳报告", "生成ISO 14064标准报告", "导出为PDF/Excel"],
+        "emission_analysis": ["分析我的排放数据", "查看趋势图表", "和同行业对比"],
+        "reduction_advice": ["获取定制化减排方案", "查看新能源改造方案", "了解碳抵消方案"],
+        "carbon_asset": ["查询CCER价格", "开发碳资产项目", "了解碳交易规则"],
+        "policy_inquiry": ["解读最新双碳政策", "了解行业合规要求", "ESG披露要求"],
+        "scope_knowledge": ["什么是Scope 1", "什么是Scope 2", "Scope 3包括哪些"],
+        "general_qa": ["查看企业总排放数据", "帮你做一次碳盘查", "了解碳减排方案"]
+    }
+    return suggestion_map.get(intent, suggestion_map["general_qa"])
+
+
 def _fallback_reply(message: str, intent: str) -> str:
     """LLM不可用时的降级回复"""
     fallback_replies = {

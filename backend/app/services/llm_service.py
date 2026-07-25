@@ -75,8 +75,8 @@ class LLMService:
         try:
             if not config.LLM_API_KEY or config.LLM_API_KEY == "sk-xxx":
                 raise ValueError("API Key未配置")
-            # httpx async client，超时30秒
-            self._client = httpx.AsyncClient(timeout=60.0)
+            self._client = httpx.AsyncClient(timeout=30.0)
+            # 快速测试API连通性（选做，失败时标记不可用）
             self._available = True
         except Exception as e:
             self._available = False
@@ -126,7 +126,10 @@ class LLMService:
         }
 
         response = await self._client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+        
+        if response.status_code != 200:
+            self._available = False
+            raise RuntimeError(f"LLM API返回{response.status_code}: {response.text[:200]}")
 
         result = response.json()
         message = result["choices"][0]["message"]
