@@ -279,7 +279,8 @@ body {
 
 .el-main.no-padding {
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .full-width {
