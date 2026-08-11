@@ -351,8 +351,17 @@
           <el-icon><Close /></el-icon>
         </button>
         <div class="video-placeholder">
-          <el-icon :size="64"><VideoPlay /></el-icon>
-          <p>产品演示视频</p>
+          <el-icon :size="64" class="video-icon"><VideoPlay /></el-icon>
+          <h3>产品演示视频</h3>
+          <p>即将上线，敬请期待</p>
+          <div class="video-features">
+            <span><el-icon><Check /></el-icon> 2分钟快速了解</span>
+            <span><el-icon><Check /></el-icon> 真实用户案例</span>
+            <span><el-icon><Check /></el-icon> 功能全景展示</span>
+          </div>
+          <button class="btn-primary" @click="showVideo = false" style="margin-top: 24px;">
+            先体验产品
+          </button>
         </div>
       </div>
     </div>
@@ -2275,8 +2284,45 @@ onMounted(() => {
 }
 
 .video-placeholder p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #808090;
+}
+
+.video-placeholder h3 {
   margin-top: 16px;
-  font-size: 16px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.video-icon {
+  color: #00d4ff;
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.video-features {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.video-features span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #a0a0b0;
+}
+
+.video-features .el-icon {
+  color: #00ff88;
+  font-size: 14px;
 }
 
 /* ===== 响应式 ===== */
