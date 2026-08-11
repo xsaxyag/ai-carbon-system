@@ -13,6 +13,10 @@
             <template #header>
               <div class="card-header">
                 <span>📤 地图导入</span>
+              <el-radio-group v-model="importMode" size="small" style="margin-left:12px">
+                  <el-radio-button value="plan">平面图</el-radio-button>
+                  <el-radio-button value="heightmap">高度图</el-radio-button>
+                </el-radio-group>
               </div>
             </template>
             <el-upload
@@ -26,13 +30,14 @@
             >
               <el-icon class="el-icon--upload"><upload-filled /></el-icon>
               <div class="el-upload__text">
-                拖拽园区平面图到此处 或 <em>点击上传</em>
-              </div>
+                <template v-if="importMode === 'heightmap'">拖拽灰度高度图到此处 或 <em>点击上传</em></template>
+                <template v-else>拖拽园区平面图到此处 或 <em>点击上传</em></template>
+                </div>
             </el-upload>
             <div v-if="uploadedImage" class="image-preview">
               <img :src="uploadedImage" alt="园区平面图" class="preview-img" />
               <el-button type="primary" @click="start3DConversion" :loading="converting">
-                🚀 一键生成3D园区
+                {{ importMode === 'heightmap' ? '🏔️ 生成3D地形' : '🚀 一键生成3D园区' }}
               </el-button>
             </div>
           </el-card>
@@ -418,6 +423,7 @@ const reductionRecommendations = ref([
   { priority: 4, title: '智能能源管理系统', description: '部署EMS系统实时监控能耗，AI优化用能策略，识别浪费环节', reduction: 450, cost: 120, payback: 2.6 },
   { priority: 5, title: '绿色物流优化', description: '优化运输路线、提升装载率、引入电动叉车和新能源运输车辆', reduction: 210, cost: 65, payback: 3.1 }
 ])
+const importMode = ref('plan') // plan=平面图, heightmap=高度图
 const uploadedImage = ref('')
 const imageFile = ref(null)
 const converting = ref(false)
@@ -499,12 +505,41 @@ const handleImageUpload = (file) => {
 // 开始3D转换
 const start3DConversion = async () => {
   if (!uploadedImage.value) {
-    ElMessage.warning('请先上传园区平面图！')
+    ElMessage.warning(importMode.value === 'heightmap' ? '请先上传灰度高度图！' : '请先上传园区平面图！')
     return
   }
-  
+
   converting.value = true
-  
+
+  if (importMode.value === 'heightmap') {
+    // ===== 高度图模式：灰度图 → 3D 地形 =====
+    if (!scene) {
+      initThreeScene()
+    }
+    clearSceneObjects()
+    try {
+      await createTerrainFromHeightmap(scene, uploadedImage.value, {
+        width: 300,
+        depth: 300,
+        heightScale: 28,
+        segments: 128
+      })
+      if (camera) {
+        camera.position.set(120, 120, 120)
+        camera.lookAt(0, 0, 0)
+      }
+      sceneReady.value = true
+      ElMessage.success('3D地形生成成功！拖动鼠标旋转查看')
+    } catch (e) {
+      console.error('地形生成失败:', e)
+      ElMessage.error('地形生成失败：' + (e.message || e))
+    } finally {
+      converting.value = false
+    }
+    return
+  }
+
+  // ===== 平面图模式：原有标注流程 =====
   // 如果有真实数据，先获取
   await fetchCarbonData()
   
@@ -512,6 +547,108 @@ const start3DConversion = async () => {
   annotationDialogVisible.value = true
   converting.value = false
 }
+
+// ============================================================
+// 灰度高度图 → 3D 地形（方案A）
+// 原理：像素亮度 = 海拔高度，修改 PlaneGeometry 顶点 Y 坐标
+// ============================================================
+
+// 读取图片像素灰度，归一化 0~1，降采样到 GRID x GRID
+const loadHeightmapFromImage = (img, grid = 128) => {
+  const canvas = document.createElement('canvas')
+  canvas.width = grid
+  canvas.height = grid
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, grid, grid)
+  const data = ctx.getImageData(0, 0, grid, grid).data
+  const heights = new Float32Array(grid * grid)
+  for (let i = 0; i < grid * grid; i++) {
+    const r = data[i * 4]
+    const g = data[i * 4 + 1]
+    const b = data[i * 4 + 2]
+    // 感知灰度公式
+    heights[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  }
+  return { heights, grid }
+}
+
+// 根据高度图创建起伏 3D 地形
+const createTerrainFromHeightmap = (sceneRef, src, options = {}) => {
+  const {
+    width = 300,
+    depth = 300,
+    heightScale = 28,
+    segments = 128
+  } = options
+
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const { heights, grid } = loadHeightmapFromImage(img)
+
+        const geometry = new THREE.PlaneGeometry(width, depth, segments, segments)
+        const pos = geometry.attributes.position
+        const H = segments + 1
+
+        for (let i = 0; i < pos.count; i++) {
+          const col = i % H
+          const row = Math.floor(i / H)
+          const gx = Math.min(grid - 1, Math.round((col / segments) * (grid - 1)))
+          const gy = Math.min(grid - 1, Math.round((row / segments) * (grid - 1)))
+          const h = heights[gy * grid + gx]
+          pos.setY(i, h * heightScale)
+        }
+        geometry.computeVertexNormals()
+
+        // 原图作表面贴图
+        const texture = new THREE.TextureLoader().load(src)
+        const material = new THREE.MeshStandardMaterial({
+          map: texture,
+          roughness: 0.92,
+          metalness: 0.02,
+          side: THREE.DoubleSide
+        })
+
+        const mesh = new THREE.Mesh(geometry, material)
+        mesh.rotation.x = -Math.PI / 2 // XY平面 → XZ水平
+        mesh.position.y = 0
+        sceneRef.add(mesh)
+
+        resolve(mesh)
+      } catch (e) {
+        reject(e)
+      }
+    }
+    img.onerror = () => reject(new Error('图片加载失败'))
+    img.src = src
+  })
+}
+
+// 清除场景中的建筑/粒子/地形，避免重复生成叠加
+const clearSceneObjects = () => {
+  if (!scene) return
+  // 移除所有建筑
+  buildingMeshes.forEach(m => {
+    scene.remove(m)
+    if (m.geometry) m.geometry.dispose()
+    if (m.material) m.material.dispose()
+  })
+  buildingMeshes = []
+  // 移除粒子
+  if (particleSystem) {
+    scene.remove(particleSystem)
+    particleSystem = null
+  }
+  // 移除光晕精灵
+  glowSprites.forEach(sp => scene.remove(sp))
+  glowSprites = []
+  // 移除呼吸对象
+  breathingObjects.forEach(o => scene.remove(o))
+  breathingObjects = []
+}
+
 
 // 初始化标注事件
 const initAnnotationEvents = () => {
