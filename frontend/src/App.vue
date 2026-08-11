@@ -1,7 +1,7 @@
-﻿<template>
+<template>
   <el-container class="app-container">
-    <!-- 侧边栏 -->
-    <el-aside width="200px">
+    <!-- 侧边栏 - 仅在非公共页面显示 -->
+    <el-aside v-if="!isPublicPage" width="200px">
       <div class="logo">
         <el-icon :size="24"><DataBoard /></el-icon>
         <span>AI碳枢算</span>
@@ -61,7 +61,6 @@
           <el-icon><FolderOpened /></el-icon>
           <span>数据备份</span>
         </el-menu-item>
-        <!-- V2.1 AI智能碳顾问 -->
         <el-menu-item index="/ai-carbon-advisor">
           <el-icon><Promotion /></el-icon>
           <span>AI智能顾问</span>
@@ -69,7 +68,6 @@
 
         <el-divider style="margin: 8px 0; border-color: #2d2d4a;" />
 
-        <!-- V2.0 3D可视化 -->
         <div class="menu-title" style="padding: 8px 20px; color: #909399; font-size: 12px;">3D可视化大屏</div>
         
         <el-menu-item index="/3d-dashboard">
@@ -92,12 +90,12 @@
           <el-icon><Lightning /></el-icon>
           <span>源网荷储协同</span>
         </el-menu-item>
-        <el-menu-item index="/site-map-3d">n          <el-icon><MapLocation /></el-icon>
+        <el-menu-item index="/site-map-3d">
+          <el-icon><MapLocation /></el-icon>
           <span>园区地图3D</span>
         </el-menu-item>
       </el-menu>
 
-      <!-- 侧边栏底部用户信息 -->
       <div class="sidebar-user" v-if="currentUser">
         <el-divider style="margin: 8px 0; border-color: #2d2d4a;" />
         <div class="user-info">
@@ -113,15 +111,18 @@
     </el-aside>
 
     <!-- 主内容区 -->
-    <el-container>
-      <el-header>
+    <el-container :class="{ 'full-width': isPublicPage }">
+      <!-- 顶部栏 - 仅在非公共页面显示 -->
+      <el-header v-if="!isPublicPage">
         <div class="header-title">碳中和智能管理系统</div>
         <div class="header-right">
           <el-tag v-if="currentUser" type="success" size="small">{{ currentUser.role === 'admin' ? '管理员' : '普通用户' }}</el-tag>
           <el-button text>{{ currentDate }}</el-button>
         </div>
       </el-header>
-      <el-main>
+      
+      <!-- 主内容 -->
+      <el-main :class="{ 'no-padding': isPublicPage }">
         <router-view />
       </el-main>
     </el-container>
@@ -130,7 +131,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUser, clearAuth } from './utils/auth'
 import {
@@ -141,8 +142,14 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const currentDate = ref('')
 const currentUser = computed(() => getUser())
+
+// 判断是否为公共页面（不显示侧边栏和顶部栏）
+const isPublicPage = computed(() => {
+  return route.meta?.public === true || route.path === '/'
+})
 
 onMounted(() => {
   const now = new Date()
@@ -268,5 +275,14 @@ body {
 .el-main {
   padding: 20px;
   overflow-y: auto;
+}
+
+.el-main.no-padding {
+  padding: 0;
+  overflow: hidden;
+}
+
+.full-width {
+  width: 100%;
 }
 </style>
