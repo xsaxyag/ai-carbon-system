@@ -1,281 +1,266 @@
 <template>
-  <div class="landing-page" :class="{ 'loaded': pageLoaded }">
-    <!-- 开场动画遮罩 -->
-    <div class="intro-overlay" v-if="showIntro">
-      <div class="intro-content">
-        <div class="intro-logo">
-          <el-icon :size="80" color="#00d4ff"><DataBoard /></el-icon>
-        </div>
-        <h1 class="intro-title">AI碳枢算</h1>
-        <p class="intro-subtitle">中小微企业碳中和智能管理系统</p>
-        <div class="intro-loading">
-          <div class="loading-bar">
-            <div class="loading-progress" :style="{ width: loadingProgress + '%' }"></div>
-          </div>
-          <span class="loading-text">{{ loadingText }}</span>
-        </div>
-      </div>
+  <div class="landing-page" ref="landingRef">
+    <!-- 动态背景层 -->
+    <div class="bg-layers">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <canvas ref="particleCanvas" class="particle-canvas"></canvas>
+      <div class="bg-glow"></div>
     </div>
 
-    <!-- 粒子背景画布 -->
-    <canvas ref="particleCanvas" class="particle-canvas"></canvas>
-
     <!-- 导航栏 -->
-    <nav class="landing-nav" :class="{ 'scrolled': isScrolled }">
-      <div class="nav-brand">
-        <el-icon :size="32" color="#00d4ff"><DataBoard /></el-icon>
-        <span class="brand-text">AI碳枢算</span>
+    <nav class="nav-bar" :class="{ 'nav-visible': navVisible }">
+      <div class="nav-logo" @click="scrollToTop">
+        <div class="logo-icon">
+          <el-icon :size="28"><DataBoard /></el-icon>
+        </div>
+        <span class="logo-text">AI碳枢算</span>
       </div>
-      <div class="nav-links">
-        <a href="#features" @click.prevent="scrollToSection('features')">功能特性</a>
-        <a href="#demo" @click.prevent="scrollToSection('demo')">产品演示</a>
-        <a href="#ai-advisor" @click.prevent="scrollToSection('ai-advisor')">AI顾问</a>
-        <a href="#pricing" @click.prevent="scrollToSection('pricing')">价格方案</a>
+      
+      <div class="nav-menu">
+        <a v-for="item in navItems" :key="item.id" 
+           :href="'#' + item.id"
+           @click.prevent="scrollToSection(item.id)"
+           :class="{ active: activeSection === item.id }">
+          {{ item.label }}
+          <span class="nav-dot"></span>
+        </a>
       </div>
+      
       <div class="nav-actions">
-        <el-button text class="nav-btn" @click="goToLogin">登录</el-button>
-        <el-button type="primary" class="nav-btn-primary" @click="goToRegister">
-          免费试用
-        </el-button>
+        <button class="btn-ghost" @click="goToLogin">登录</button>
+        <button class="btn-primary" @click="goToRegister">
+          <span>免费试用</span>
+          <el-icon><ArrowRight /></el-icon>
+        </button>
       </div>
     </nav>
 
     <!-- 英雄区 -->
-    <section class="hero-section">
+    <section class="hero" id="hero">
       <div class="hero-content">
-        <div class="hero-badge" :class="{ 'animate-in': pageLoaded }">
+        <div class="hero-badge">
+          <span class="badge-pulse"></span>
           <el-icon><StarFilled /></el-icon>
-          <span>GB/T 32150 标准合规 · 生态环境部因子库</span>
+          <span>GB/T 32150 标准合规</span>
         </div>
         
-        <h1 class="hero-title" :class="{ 'animate-in': pageLoaded }">
-          <span class="gradient-text">AI驱动</span>的碳中和
-          <br />智能管理平台
+        <h1 class="hero-title">
+          <span class="title-line" v-for="(line, i) in titleLines" :key="i" :style="{ animationDelay: i * 0.2 + 's' }">
+            <span v-html="line"></span>
+          </span>
         </h1>
         
-        <p class="hero-description" :class="{ 'animate-in': pageLoaded }">
-          专为中小微企业打造的碳排放核算、碳足迹追踪、减排优化一站式解决方案。
-          <br />从数据录入到ISO标准报告生成，AI全程赋能，让碳管理变得简单高效。
+        <p class="hero-desc" :class="{ 'typing-done': typingDone }">
+          <span class="typing-text">{{ typedText }}</span>
+          <span class="typing-cursor" v-if="!typingDone"></span>
         </p>
         
-        <div class="hero-stats" :class="{ 'animate-in': pageLoaded }">
-          <div class="stat-item">
-            <div class="stat-number">
-              <span class="counter" data-target="500">0</span>+
+        <div class="hero-stats">
+          <div class="stat-card" v-for="(stat, i) in stats" :key="i" :style="{ animationDelay: 1.5 + i * 0.15 + 's' }">
+            <div class="stat-icon">
+              <el-icon :size="24"><component :is="stat.icon" /></el-icon>
             </div>
-            <div class="stat-label">服务企业</div>
-          </div>
-          <div class="stat-item">
             <div class="stat-number">
-              <span class="counter" data-target="10000">0</span>+
+              <span class="counter" ref="counters">{{ stat.value }}</span>
+              <span class="stat-unit">{{ stat.unit }}</span>
             </div>
-            <div class="stat-label">碳核算次数</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-number">
-              <span class="counter" data-target="30">0</span>%
-            </div>
-            <div class="stat-label">平均减排率</div>
+            <div class="stat-label">{{ stat.label }}</div>
           </div>
         </div>
         
-        <div class="hero-cta" :class="{ 'animate-in': pageLoaded }">
-          <el-button type="primary" size="large" class="cta-primary" @click="goToRegister">
-            <el-icon><User /></el-icon>
-            免费注册，开启碳中和之旅
-          </el-button>
-          <el-button size="large" class="cta-secondary" @click="scrollToSection('demo')">
-            <el-icon><VideoPlay /></el-icon>
-            观看产品演示
-          </el-button>
+        <div class="hero-cta">
+          <button class="btn-magic" @click="goToRegister">
+            <span class="btn-bg"></span>
+            <span class="btn-text">
+              <el-icon><Promotion /></el-icon>
+              立即开启碳中和之旅
+            </span>
+          </button>
+          <button class="btn-video" @click="showVideo = true">
+            <span class="play-icon">
+              <el-icon><VideoPlay /></el-icon>
+            </span>
+            <span>观看演示</span>
+          </button>
         </div>
       </div>
 
-      <!-- 3D预览卡片 -->
-      <div class="hero-preview" :class="{ 'animate-in': pageLoaded }">
-        <div class="preview-card">
-          <div class="preview-header">
-            <div class="preview-dots">
-              <span></span><span></span><span></span>
+      <!-- 3D场景预览 -->
+      <div class="hero-visual">
+        <div class="scene-container" :style="sceneStyle">
+          <div class="scene-card" v-for="(card, i) in sceneCards" :key="i" :class="card.class" :style="card.style">
+            <div class="card-content">
+              <el-icon :size="32"><component :is="card.icon" /></el-icon>
+              <span>{{ card.text }}</span>
             </div>
-            <span class="preview-title">碳排放实时监测</span>
           </div>
-          <div class="preview-content">
-            <div class="chart-mockup">
-              <div class="chart-bars">
-                <div class="bar" style="height: 60%"><span>Scope 1</span></div>
-                <div class="bar" style="height: 80%"><span>Scope 2</span></div>
-                <div class="bar highlight" style="height: 45%"><span>Scope 3</span></div>
+          
+          <div class="floating-island">
+            <div class="island-base"></div>
+            <div class="island-buildings">
+              <div class="bldg bldg-1"></div>
+              <div class="bldg bldg-2"></div>
+              <div class="bldg bldg-3"></div>
+            </div>
+            <div class="island-trees">
+              <div class="tree" v-for="n in 5" :key="n"></div>
+            </div>
+            <div class="carbon-rings">
+              <div class="ring" v-for="n in 3" :key="n" :style="{ animationDelay: n * 0.5 + 's' }"></div>
+            </div>
+          </div>
+          
+          <div class="orbit-particles">
+            <div class="orbit-particle" v-for="n in 8" :key="n" :style="{ animationDelay: n * 0.3 + 's' }"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 场景化功能展示 -->
+    <section class="story-section" id="features">
+      <div class="section-header">
+        <span class="section-tag">场景化体验</span>
+        <h2>碳管理，从未如此简单</h2>
+        <p>跟随小明的碳中和之旅，看看 AI碳枢算 如何助力企业实现绿色转型</p>
+      </div>
+
+      <div class="story-timeline">
+        <div class="story-card" v-for="(story, i) in stories" :key="i" :class="{ 'story-left': i % 2 === 0, 'story-right': i % 2 === 1 }">
+          <div class="story-visual" :class="story.theme">
+            <div class="story-anim">
+              <div class="anim-element" v-for="(el, j) in story.animElements" :key="j" :class="el.class" :style="el.style"></div>
+            </div>
+          </div>
+          <div class="story-content">
+            <div class="story-step">步骤 {{ i + 1 }}</div>
+            <h3>{{ story.title }}</h3>
+            <p>{{ story.desc }}</p>
+            <ul class="story-features">
+              <li v-for="feat in story.features" :key="feat">
+                <el-icon><Check /></el-icon>
+                {{ feat }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 互动功能卡片 -->
+    <section class="features-grid-section" id="capabilities">
+      <div class="section-header">
+        <span class="section-tag">核心能力</span>
+        <h2>全方位碳管理工具箱</h2>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-flip-card" v-for="(feature, i) in features" :key="i" @mouseenter="feature.hovered = true" @mouseleave="feature.hovered = false">
+          <div class="flip-inner" :class="{ flipped: feature.hovered }">
+            <div class="flip-front" :class="feature.theme">
+              <div class="feature-icon-wrap">
+                <el-icon :size="48"><component :is="feature.icon" /></el-icon>
               </div>
-              <div class="chart-line">
-                <svg viewBox="0 0 200 80">
-                  <path d="M0,60 Q50,40 100,50 T200,20" stroke="#00d4ff" stroke-width="2" fill="none"/>
-                  <circle cx="0" cy="60" r="3" fill="#00d4ff"/>
-                  <circle cx="100" cy="50" r="3" fill="#00d4ff"/>
-                  <circle cx="200" cy="20" r="3" fill="#00d4ff"/>
-                </svg>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.brief }}</p>
+              <div class="flip-hint">
+                <el-icon><ArrowRight /></el-icon>
+                了解更多
               </div>
             </div>
-            <div class="ai-insight">
+            <div class="flip-back" :class="feature.theme">
+              <h4>{{ feature.title }}</h4>
+              <p>{{ feature.detail }}</p>
+              <ul>
+                <li v-for="item in feature.items" :key="item">{{ item }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI顾问互动演示 -->
+    <section class="ai-demo-section" id="ai">
+      <div class="ai-container">
+        <div class="ai-intro">
+          <span class="section-tag">AI智能顾问</span>
+          <h2>24小时在线的碳管理专家</h2>
+          <p>基于大模型技术，深度融合碳核算专业知识，为您提供专业、可执行的碳管理建议</p>
+        </div>
+        
+        <div class="ai-chat-demo">
+          <div class="chat-window">
+            <div class="chat-header">
               <div class="ai-avatar">
+                <div class="avatar-pulse"></div>
                 <el-icon><Cpu /></el-icon>
               </div>
-              <div class="ai-message">
-                <p>AI分析：本月碳排放较上月下降 <strong>12%</strong></p>
-                <p class="ai-suggestion">建议：优化能源结构可进一步降低 Scope 2 排放</p>
+              <div class="ai-info">
+                <span class="ai-name">碳小智</span>
+                <span class="ai-status">
+                  <span class="status-dot"></span>
+                  在线
+                </span>
+              </div>
+            </div>
+            <div class="chat-messages" ref="chatMessages">
+              <div v-for="(msg, i) in chatMessages" :key="i" :class="['message', msg.type]">
+                <div class="message-content" v-html="msg.content"></div>
+                <div class="message-time">{{ msg.time }}</div>
+              </div>
+            </div>
+            <div class="chat-input">
+              <input type="text" placeholder="输入您的问题..." readonly />
+              <button>
+                <el-icon><Promotion /></el-icon>
+              </button>
+            </div>
+          </div>
+          
+          <div class="ai-capabilities">
+            <div class="capability-tag" v-for="cap in aiCapabilities" :key="cap">
+              <el-icon><Check /></el-icon>
+              {{ cap }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 数据可视化展示 -->
+    <section class="viz-section" id="viz">
+      <div class="viz-container">
+        <div class="viz-content">
+          <span class="section-tag">3D可视化</span>
+          <h2>让碳数据"活"起来</h2>
+          <p>告别枯燥的表格和图表，用沉浸式的3D场景直观呈现碳排放数据，一眼洞察问题所在</p>
+          
+          <div class="viz-features">
+            <div class="viz-feature" v-for="(viz, i) in vizFeatures" :key="i">
+              <div class="viz-icon" :class="viz.color">
+                <el-icon :size="28"><component :is="viz.icon" /></el-icon>
+              </div>
+              <div class="viz-text">
+                <h4>{{ viz.title }}</h4>
+                <p>{{ viz.desc }}</p>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 浮动元素 -->
-        <div class="float-card card-1">
-          <el-icon><TrendCharts /></el-icon>
-          <span>实时数据</span>
-        </div>
-        <div class="float-card card-2">
-          <el-icon><CircleCheck /></el-icon>
-          <span>ISO合规</span>
-        </div>
-        <div class="float-card card-3">
-          <el-icon><Timer /></el-icon>
-          <span>7×24监控</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 核心功能特性 -->
-    <section id="features" class="features-section">
-      <div class="section-header scroll-reveal">
-        <span class="section-tag">核心功能</span>
-        <h2 class="section-title">一站式碳管理解决方案</h2>
-        <p class="section-desc">从数据采集到报告生成，从碳核算到减排优化，覆盖碳管理全生命周期</p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card scroll-reveal" v-for="(feature, index) in features" :key="index" :style="{ animationDelay: index * 0.1 + 's' }">
-          <div class="feature-icon" :class="feature.colorClass">
-            <el-icon :size="32"><component :is="feature.icon" /></el-icon>
+        <div class="viz-showcase">
+          <div class="viz-tabs">
+            <button v-for="(tab, i) in vizTabs" :key="i" 
+                    :class="{ active: activeVizTab === i }"
+                    @click="activeVizTab = i">
+              {{ tab.label }}
+            </button>
           </div>
-          <h3 class="feature-title">{{ feature.title }}</h3>
-          <p class="feature-desc">{{ feature.description }}</p>
-          <ul class="feature-list">
-            <li v-for="item in feature.items" :key="item">
-              <el-icon><Check /></el-icon>
-              {{ item }}
-            </li>
-          </ul>
-          <div class="feature-hover">
-            <el-button type="primary" text @click="goToRegister">
-              了解更多 <el-icon><ArrowRight /></el-icon>
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3D可视化展示 -->
-    <section id="demo" class="demo-section">
-      <div class="demo-container">
-        <div class="demo-content scroll-reveal">
-          <span class="section-tag">3D可视化</span>
-          <h2 class="section-title">沉浸式碳数据体验</h2>
-          <p class="section-desc">
-            将抽象的碳排放数据转化为直观的3D可视化场景。
-            园区地图一键3D化、数字孪生工厂、供应链碳图谱，
-            让碳管理从数字走向空间。
-          </p>
-          <div class="demo-features">
-            <div class="demo-feature">
-              <el-icon><MapLocation /></el-icon>
-              <div>
-                <h4>园区地图3D化</h4>
-                <p>上传平面图，AI自动生成3D园区模型</p>
-              </div>
-            </div>
-            <div class="demo-feature">
-              <el-icon><OfficeBuilding /></el-icon>
-              <div>
-                <h4>数字孪生工厂</h4>
-                <p>实时映射生产流程，碳排放一目了然</p>
-              </div>
-            </div>
-            <div class="demo-feature">
-              <el-icon><Share /></el-icon>
-              <div>
-                <h4>供应链碳图谱</h4>
-                <p>全链路碳足迹追踪，识别高排放节点</p>
-              </div>
-            </div>
-          </div>
-          <el-button type="primary" size="large" @click="goToRegister">
-            立即体验3D功能
-          </el-button>
-        </div>
-        <div class="demo-visual scroll-reveal">
-          <div class="demo-3d-scene">
-            <div class="building building-1"></div>
-            <div class="building building-2"></div>
-            <div class="building building-3"></div>
-            <div class="building building-4"></div>
-            <div class="ground-grid"></div>
-            <div class="data-particles">
-              <span v-for="n in 20" :key="n" :style="{ animationDelay: n * 0.2 + 's' }"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- AI碳顾问 -->
-    <section id="ai-advisor" class="ai-section">
-      <div class="ai-container">
-        <div class="ai-visual scroll-reveal">
-          <div class="ai-avatar-large">
-            <div class="ai-pulse"></div>
-            <div class="ai-core">
-              <el-icon :size="64"><Cpu /></el-icon>
-            </div>
-          </div>
-          <div class="ai-chat-preview">
-            <div class="chat-bubble user">
-              <p>如何降低我们工厂的碳排放？</p>
-            </div>
-            <div class="chat-bubble ai">
-              <p>根据您的数据分析，建议从以下3个方面入手：</p>
-              <ol>
-                <li>优化能源结构，增加绿电比例</li>
-                <li>改进生产工艺，提高能效</li>
-                <li>建立碳资产管理体系</li>
-              </ol>
-              <p>预计可实现减排 <strong>15-25%</strong></p>
-            </div>
-          </div>
-        </div>
-        <div class="ai-content scroll-reveal">
-          <span class="section-tag">AI智能顾问</span>
-          <h2 class="section-title">24小时碳管理专家</h2>
-          <p class="section-desc">
-            基于GLM-5.1大模型，深度融合碳核算专业知识。
-            无论是ISO标准解读、碳足迹计算，还是减排方案制定，
-            AI顾问都能给出专业、可执行的建议。
-          </p>
-          <div class="ai-capabilities">
-            <div class="capability">
-              <el-icon><ChatDotRound /></el-icon>
-              <span>自然语言问答</span>
-            </div>
-            <div class="capability">
-              <el-icon><Document /></el-icon>
-              <span>ISO标准解读</span>
-            </div>
-            <div class="capability">
-              <el-icon><TrendCharts /></el-icon>
-              <span>减排方案推荐</span>
-            </div>
-            <div class="capability">
-              <el-icon><Money /></el-icon>
-              <span>碳资产交易咨询</span>
+          <div class="viz-display">
+            <div class="viz-scene" :class="vizTabs[activeVizTab].scene">
+              <div class="scene-element" v-for="(el, j) in vizTabs[activeVizTab].elements" :key="j" :class="el.class" :style="el.style"></div>
             </div>
           </div>
         </div>
@@ -283,103 +268,54 @@
     </section>
 
     <!-- 价格方案 -->
-    <section id="pricing" class="pricing-section">
-      <div class="section-header scroll-reveal">
-        <span class="section-tag">价格方案</span>
-        <h2 class="section-title">灵活选择，按需升级</h2>
-        <p class="section-desc">从免费试用到企业级定制，满足不同规模企业的碳管理需求</p>
+    <section class="pricing-section" id="pricing">
+      <div class="section-header">
+        <span class="section-tag">灵活定价</span>
+        <h2>选择适合您的方案</h2>
       </div>
-
-      <div class="pricing-grid">
-        <div class="pricing-card scroll-reveal">
-          <div class="pricing-header">
-            <h3>免费版</h3>
-            <div class="pricing-price">
+      
+      <div class="pricing-cards">
+        <div class="pricing-card" v-for="(plan, i) in pricingPlans" :key="i" :class="{ popular: plan.popular }">
+          <div class="plan-header">
+            <h3>{{ plan.name }}</h3>
+            <div class="plan-price">
               <span class="currency">¥</span>
-              <span class="amount">0</span>
+              <span class="amount">{{ plan.price }}</span>
               <span class="period">/月</span>
             </div>
           </div>
-          <ul class="pricing-features">
-            <li><el-icon><Check /></el-icon>基础碳核算（Scope 1/2）</li>
-            <li><el-icon><Check /></el-icon>标准数据报表</li>
-            <li><el-icon><Check /></el-icon>AI顾问基础问答</li>
-            <li><el-icon><Check /></el-icon>1个企业管理</li>
-            <li class="disabled"><el-icon><Close /></el-icon>3D可视化</li>
-            <li class="disabled"><el-icon><Close /></el-icon>ISO报告生成</li>
+          <ul class="plan-features">
+            <li v-for="feat in plan.features" :key="feat.text" :class="{ disabled: !feat.included }">
+              <el-icon>{{ feat.included ? 'Check' : 'Close' }}</el-icon>
+              {{ feat.text }}
+            </li>
           </ul>
-          <el-button class="pricing-btn" @click="goToRegister">免费开始</el-button>
-        </div>
-
-        <div class="pricing-card popular scroll-reveal">
-          <div class="popular-badge">最受欢迎</div>
-          <div class="pricing-header">
-            <h3>专业版</h3>
-            <div class="pricing-price">
-              <span class="currency">¥</span>
-              <span class="amount">299</span>
-              <span class="period">/月</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li><el-icon><Check /></el-icon>全功能碳核算（Scope 1/2/3）</li>
-            <li><el-icon><Check /></el-icon>3D可视化大屏</li>
-            <li><el-icon><Check /></el-icon>AI顾问高级功能</li>
-            <li><el-icon><Check /></el-icon>ISO 14064/14067报告</li>
-            <li><el-icon><Check /></el-icon>10个企业管理</li>
-            <li><el-icon><Check /></el-icon>碳资产管理</li>
-          </ul>
-          <el-button type="primary" class="pricing-btn" @click="goToRegister">立即升级</el-button>
-        </div>
-
-        <div class="pricing-card scroll-reveal">
-          <div class="pricing-header">
-            <h3>企业版</h3>
-            <div class="pricing-price">
-              <span class="currency">¥</span>
-              <span class="amount">定制</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li><el-icon><Check /></el-icon>专业版全部功能</li>
-            <li><el-icon><Check /></el-icon>私有化部署</li>
-            <li><el-icon><Check /></el-icon>API接口开放</li>
-            <li><el-icon><Check /></el-icon>专属客户成功经理</li>
-            <li><el-icon><Check /></el-icon>定制化开发</li>
-            <li><el-icon><Check /></el-icon>SLA服务保障</li>
-          </ul>
-          <el-button class="pricing-btn" @click="goToRegister">联系销售</el-button>
+          <button :class="plan.popular ? 'btn-primary' : 'btn-ghost'" @click="goToRegister">
+            {{ plan.cta }}
+          </button>
         </div>
       </div>
     </section>
 
     <!-- CTA区域 -->
-    <section class="cta-section">
-      <div class="cta-content scroll-reveal">
-        <h2>开启您的碳中和之旅</h2>
-        <p>加入500+企业，用AI赋能碳管理，共创绿色未来</p>
+    <section class="final-cta">
+      <div class="cta-particles"></div>
+      <div class="cta-content">
+        <h2>准备好开启碳中和之旅了吗？</h2>
+        <p>加入 500+ 企业，用 AI 赋能碳管理</p>
         <div class="cta-buttons">
-          <el-button type="primary" size="large" @click="goToRegister">
-            <el-icon><User /></el-icon>
-            免费注册使用
-          </el-button>
-          <el-button size="large" @click="goToLogin">
-            已有账号？立即登录
-          </el-button>
+          <button class="btn-magic btn-large" @click="goToRegister">
+            <el-icon><Promotion /></el-icon>
+            免费开始使用
+          </button>
+          <button class="btn-ghost btn-large" @click="goToLogin">
+            已有账号？登录
+          </button>
         </div>
-        <div class="trust-badges">
-          <div class="badge">
-            <el-icon><Lock /></el-icon>
-            <span>数据安全加密</span>
-          </div>
-          <div class="badge">
-            <el-icon><CircleCheck /></el-icon>
-            <span>国标合规</span>
-          </div>
-          <div class="badge">
-            <el-icon><Timer /></el-icon>
-            <span>7×24小时服务</span>
-          </div>
+        <div class="trust-signals">
+          <span><el-icon><Lock /></el-icon> 数据安全加密</span>
+          <span><el-icon><CircleCheck /></el-icon> 国标合规</span>
+          <span><el-icon><Timer /></el-icon> 7×24小时服务</span>
         </div>
       </div>
     </section>
@@ -388,28 +324,18 @@
     <footer class="landing-footer">
       <div class="footer-content">
         <div class="footer-brand">
-          <el-icon :size="32" color="#00d4ff"><DataBoard /></el-icon>
-          <span>AI碳枢算</span>
-          <p>中小微企业碳中和智能管理系统</p>
+          <div class="logo-icon">
+            <el-icon :size="32"><DataBoard /></el-icon>
+          </div>
+          <div>
+            <span class="brand-name">AI碳枢算</span>
+            <p>中小微企业碳中和智能管理系统</p>
+          </div>
         </div>
         <div class="footer-links">
-          <div class="footer-column">
-            <h4>产品</h4>
-            <a href="#features">功能特性</a>
-            <a href="#pricing">价格方案</a>
-            <a href="#demo">产品演示</a>
-          </div>
-          <div class="footer-column">
-            <h4>支持</h4>
-            <a href="#">帮助中心</a>
-            <a href="#">API文档</a>
-            <a href="#">联系我们</a>
-          </div>
-          <div class="footer-column">
-            <h4>关于</h4>
-            <a href="#">关于我们</a>
-            <a href="#">隐私政策</a>
-            <a href="#">服务条款</a>
+          <div class="link-group" v-for="group in footerLinks" :key="group.title">
+            <h4>{{ group.title }}</h4>
+            <a v-for="link in group.links" :key="link" href="#">{{ link }}</a>
           </div>
         </div>
       </div>
@@ -417,134 +343,305 @@
         <p>© 2024 AI碳枢算 · 基于 GB/T 32150 标准 · 生态环境部排放因子库</p>
       </div>
     </footer>
+
+    <!-- 视频弹窗 -->
+    <div class="video-modal" v-if="showVideo" @click.self="showVideo = false">
+      <div class="video-container">
+        <button class="close-btn" @click="showVideo = false">
+          <el-icon><Close /></el-icon>
+        </button>
+        <div class="video-placeholder">
+          <el-icon :size="64"><VideoPlay /></el-icon>
+          <p>产品演示视频</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  DataBoard, User, VideoPlay, TrendCharts, CircleCheck, Timer,
-  Check, ArrowRight, MapLocation, OfficeBuilding, Share,
-  Cpu, ChatDotRound, Document, Money, Lock, Close,
-  StarFilled, Coin, Camera, ScaleToOriginal, Bell,
-  Wallet, Box, Guide, FolderOpened, Promotion, Lightning
+  DataBoard, ArrowRight, StarFilled, VideoPlay,
+  Check, Close, Cpu, Promotion, Lock, CircleCheck, Timer,
+  OfficeBuilding, TrendCharts, Wallet, Document, MapLocation,
+  Share, Lightning, Guide, FirstAidKit, Money, Bell
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const landingRef = ref(null)
 const particleCanvas = ref(null)
-const isScrolled = ref(false)
-const pageLoaded = ref(false)
-const showIntro = ref(true)
-const loadingProgress = ref(0)
-const loadingText = ref('初始化系统...')
+const navVisible = ref(false)
+const activeSection = ref('hero')
+const showVideo = ref(false)
+const activeVizTab = ref(0)
 
-// 功能特性数据
+// 打字机效果
+const fullText = '专为中小微企业打造的一站式碳管理平台，从数据采集到减排优化，AI 全程赋能，让碳中和变得简单高效。'
+const typedText = ref('')
+const typingDone = ref(false)
+
+// 导航项
+const navItems = [
+  { id: 'hero', label: '首页' },
+  { id: 'features', label: '场景体验' },
+  { id: 'capabilities', label: '核心能力' },
+  { id: 'ai', label: 'AI顾问' },
+  { id: 'viz', label: '可视化' },
+  { id: 'pricing', label: '定价' }
+]
+
+// 标题行
+const titleLines = [
+  '让碳管理',
+  '<span class="gradient-text">更智能</span>',
+  '更简单'
+]
+
+// 统计数据
+const stats = [
+  { value: '500', unit: '+', label: '服务企业', icon: 'OfficeBuilding' },
+  { value: '10000', unit: '+', label: '核算次数', icon: 'TrendCharts' },
+  { value: '30', unit: '%', label: '平均减排', icon: 'TrendCharts' }
+]
+
+// 场景卡片
+const sceneCards = [
+  { icon: 'Check', text: 'GB/T 32150', class: 'card-cert', style: { top: '10%', left: '5%' } },
+  { icon: 'StarFilled', text: 'AI 驱动', class: 'card-ai', style: { top: '20%', right: '10%' } },
+  { icon: 'CircleCheck', text: 'ISO 合规', class: 'card-iso', style: { bottom: '30%', left: '0%' } }
+]
+
+// 场景化故事
+const stories = [
+  {
+    title: '上传票据，自动识别',
+    desc: '小明上传了电费单、燃气账单，OCR 智能识别自动提取关键数据，无需手动录入。',
+    features: ['多格式票据支持', '99%+ 识别准确率', '自动数据校验'],
+    theme: 'ocr',
+    animElements: [
+      { class: 'doc doc-1', style: {} },
+      { class: 'doc doc-2', style: {} },
+      { class: 'scan-line', style: {} }
+    ]
+  },
+  {
+    title: '智能核算，一键生成',
+    desc: '系统自动匹配排放因子，完成 Scope 1/2/3 全范围核算，生成符合 GB/T 32150 标准的报告。',
+    features: ['生态环境部因子库', '三范围全覆盖', '标准合规报告'],
+    theme: 'calc',
+    animElements: [
+      { class: 'calc-screen', style: {} },
+      { class: 'data-bar', style: {} },
+      { class: 'progress-ring', style: {} }
+    ]
+  },
+  {
+    title: '3D可视化，一目了然',
+    desc: '通过园区3D地图，小明直观看到各建筑碳排放分布，快速定位高排放区域。',
+    features: ['园区地图3D化', '实时数据叠加', '多维度钻取分析'],
+    theme: 'viz',
+    animElements: [
+      { class: 'building-3d', style: {} },
+      { class: 'heatmap', style: {} },
+      { class: 'data-point', style: {} }
+    ]
+  },
+  {
+    title: 'AI顾问，专业建议',
+    desc: 'AI 分析数据后，为小明提供了具体的减排方案，预计可降低 20% 碳排放。',
+    features: ['自然语言交互', '个性化方案', '效果预测评估'],
+    theme: 'ai',
+    animElements: [
+      { class: 'ai-orb', style: {} },
+      { class: 'chat-bubble', style: {} },
+      { class: 'suggestion-card', style: {} }
+    ]
+  }
+]
+
+// 功能特性
 const features = [
   {
-    icon: 'Coin',
+    icon: 'TrendCharts',
     title: '智能碳核算',
-    description: '基于GB/T 32150标准，自动识别排放源，智能匹配排放因子，一键生成符合规范的碳排放报告。',
-    items: ['Scope 1/2/3全覆盖', '生态环境部因子库', 'OCR智能识别票据', '多维度数据校验'],
-    colorClass: 'blue'
+    brief: '自动识别排放源，一键生成合规报告',
+    detail: '基于 GB/T 32150 标准，支持 Scope 1/2/3 全范围核算，自动匹配生态环境部排放因子库。',
+    items: ['OCR票据识别', '智能数据校验', '多维度分析', '标准报告导出'],
+    theme: 'blue',
+    hovered: false
   },
   {
-    icon: 'TrendCharts',
-    title: '3D可视化大屏',
-    description: '将碳数据转化为沉浸式3D场景，园区地图一键3D化、数字孪生工厂、供应链碳图谱，直观呈现碳排放分布。',
-    items: ['园区地图3D化', '数字孪生工厂', '供应链碳图谱', '源网荷储协同'],
-    colorClass: 'purple'
+    icon: 'MapLocation',
+    title: '3D园区可视化',
+    brief: '上传平面图，一键生成3D场景',
+    detail: '将园区地图转化为沉浸式3D场景，直观展示碳排放分布，支持热力图、高度图等多种可视化方式。',
+    items: ['平面图3D化', '实时数据叠加', '建筑级钻取', '导出分享'],
+    theme: 'purple',
+    hovered: false
   },
   {
-    icon: 'Promotion',
+    icon: 'Cpu',
     title: 'AI智能顾问',
-    description: '7×24小时在线的碳管理专家，基于大模型深度理解ISO标准，提供专业问答、减排建议、政策解读。',
-    items: ['自然语言交互', 'ISO标准解读', '减排方案推荐', '碳交易咨询'],
-    colorClass: 'cyan'
+    brief: '24小时在线的碳管理专家',
+    detail: '基于大模型技术，提供专业的碳核算咨询、减排方案建议、政策解读等服务。',
+    items: ['自然语言问答', '减排方案推荐', '政策标准解读', '碳交易咨询'],
+    theme: 'cyan',
+    hovered: false
   },
   {
-    icon: 'TrendCharts',
+    icon: 'FirstAidKit',
     title: '减排优化',
-    description: 'AI分析碳排放数据，识别减排潜力点，生成定制化减排方案，追踪减排效果，助力企业实现碳中和目标。',
-    items: ['减排潜力分析', '优化方案生成', '效果追踪评估', '碳中和路径规划'],
-    colorClass: 'green'
+    brief: '识别减排潜力，制定优化方案',
+    detail: 'AI分析碳排放数据，识别减排机会点，生成可执行的减排优化方案并追踪效果。',
+    items: ['潜力分析', '方案生成', '效果追踪', '路径规划'],
+    theme: 'green',
+    hovered: false
   },
   {
     icon: 'Wallet',
     title: '碳资产管理',
-    description: '支持CCER、VCS、GS、I-REC等主流碳资产类型，实现资产登记、估值、交易全流程管理。',
-    items: ['多类型碳资产', '实时估值监控', '交易记录管理', '资产健康分析'],
-    colorClass: 'orange'
+    brief: '全生命周期碳资产管理',
+    detail: '支持 CCER、VCS、GS、I-REC 等主流碳资产类型，实现资产登记、估值、交易全流程管理。',
+    items: ['多类型支持', '实时估值', '交易管理', '资产分析'],
+    theme: 'orange',
+    hovered: false
   },
   {
     icon: 'Document',
     title: 'ISO标准报告',
-    description: '一键生成ISO 14064-1组织碳盘查报告、ISO 14067产品碳足迹报告，满足国际认证需求。',
-    items: ['ISO 14064-1报告', 'ISO 14067报告', '自动格式排版', '多语言导出'],
-    colorClass: 'pink'
+    brief: '一键生成国际认证报告',
+    detail: '支持 ISO 14064-1 组织碳盘查报告、ISO 14067 产品碳足迹报告，满足国际认证需求。',
+    items: ['ISO 14064-1', 'ISO 14067', '自动排版', '多语言导出'],
+    theme: 'pink',
+    hovered: false
   }
 ]
 
-// 开场动画
-const runIntroAnimation = async () => {
-  const steps = [
-    { progress: 20, text: '加载碳核算引擎...' },
-    { progress: 45, text: '连接排放因子库...' },
-    { progress: 70, text: '初始化AI顾问...' },
-    { progress: 90, text: '准备3D可视化...' },
-    { progress: 100, text: '系统就绪' }
-  ]
-  
-  for (const step of steps) {
-    loadingProgress.value = step.progress
-    loadingText.value = step.text
-    await new Promise(r => setTimeout(r, 400))
+// AI对话消息
+const chatMessages = ref([
+  { type: 'ai', content: '您好！我是碳小智，您的专属碳管理顾问。有什么可以帮助您的吗？', time: '10:00' },
+  { type: 'user', content: '我们工厂想降低碳排放，有什么建议？', time: '10:01' },
+  { type: 'ai', content: '根据您上月的用电数据，我建议从以下3个方面入手：<br><br>1. <strong>优化能源结构</strong>：增加绿电采购比例，预计可降低 15% Scope 2 排放<br>2. <strong>设备升级</strong>：更换高效电机，投资回收期约 2 年<br>3. <strong>工艺改进</strong>：优化生产排程，减少设备空转时间<br><br>需要我为您生成详细的减排方案吗？', time: '10:02' }
+])
+
+// AI能力
+const aiCapabilities = ['自然语言交互', 'ISO标准解读', '减排方案推荐', '碳交易咨询', '政策实时更新', '个性化报告']
+
+// 可视化功能
+const vizFeatures = [
+  { icon: 'MapLocation', title: '园区地图3D化', desc: '上传平面图，AI自动生成3D园区模型', color: 'blue' },
+  { icon: 'OfficeBuilding', title: '数字孪生工厂', desc: '实时映射生产流程，碳排放一目了然', color: 'purple' },
+  { icon: 'Share', title: '供应链碳图谱', desc: '全链路碳足迹追踪，识别高排放节点', color: 'cyan' },
+  { icon: 'Lightning', title: '源网荷储协同', desc: '能源系统优化，提升清洁能源占比', color: 'green' }
+]
+
+// 可视化标签
+const vizTabs = [
+  {
+    label: '园区3D',
+    scene: 'park',
+    elements: [
+      { class: 'bldg-main', style: {} },
+      { class: 'bldg-sub', style: {} },
+      { class: 'heatmap-overlay', style: {} }
+    ]
+  },
+  {
+    label: '数字孪生',
+    scene: 'factory',
+    elements: [
+      { class: 'factory-line', style: {} },
+      { class: 'machine', style: {} },
+      { class: 'data-flow', style: {} }
+    ]
+  },
+  {
+    label: '供应链',
+    scene: 'chain',
+    elements: [
+      { class: 'node', style: {} },
+      { class: 'connection', style: {} },
+      { class: 'carbon-label', style: {} }
+    ]
   }
-  
-  await new Promise(r => setTimeout(r, 300))
-  showIntro.value = false
-  pageLoaded.value = true
-  
-  // 启动数字动画
-  nextTick(() => {
-    startCounters()
-    initScrollReveal()
-  })
-}
+]
 
-// 数字增长动画
-const startCounters = () => {
-  const counters = document.querySelectorAll('.counter')
-  counters.forEach(counter => {
-    const target = parseInt(counter.dataset.target)
-    const duration = 2000
-    const step = target / (duration / 16)
-    let current = 0
-    
-    const updateCounter = () => {
-      current += step
-      if (current < target) {
-        counter.textContent = Math.floor(current)
-        requestAnimationFrame(updateCounter)
-      } else {
-        counter.textContent = target
-      }
+// 定价方案
+const pricingPlans = [
+  {
+    name: '免费版',
+    price: '0',
+    cta: '免费开始',
+    popular: false,
+    features: [
+      { text: '基础碳核算（Scope 1/2）', included: true },
+      { text: '标准数据报表', included: true },
+      { text: 'AI顾问基础问答', included: true },
+      { text: '1个企业管理', included: true },
+      { text: '3D可视化', included: false },
+      { text: 'ISO报告生成', included: false }
+    ]
+  },
+  {
+    name: '专业版',
+    price: '299',
+    cta: '立即升级',
+    popular: true,
+    features: [
+      { text: '全功能碳核算（Scope 1/2/3）', included: true },
+      { text: '3D可视化大屏', included: true },
+      { text: 'AI顾问高级功能', included: true },
+      { text: 'ISO 14064/14067报告', included: true },
+      { text: '10个企业管理', included: true },
+      { text: '碳资产管理', included: true }
+    ]
+  },
+  {
+    name: '企业版',
+    price: '定制',
+    cta: '联系销售',
+    popular: false,
+    features: [
+      { text: '专业版全部功能', included: true },
+      { text: '私有化部署', included: true },
+      { text: 'API接口开放', included: true },
+      { text: '专属客户成功经理', included: true },
+      { text: '定制化开发', included: true },
+      { text: 'SLA服务保障', included: true }
+    ]
+  }
+]
+
+// 页脚链接
+const footerLinks = [
+  { title: '产品', links: ['功能特性', '定价方案', '更新日志', '路线图'] },
+  { title: '资源', links: ['帮助中心', 'API文档', '使用指南', '案例研究'] },
+  { title: '公司', links: ['关于我们', '联系我们', '加入我们', '合作伙伴'] },
+  { title: '法律', links: ['隐私政策', '服务条款', '安全合规'] }
+]
+
+// 3D场景鼠标跟随
+const mouseX = ref(0)
+const mouseY = ref(0)
+const sceneStyle = computed(() => ({
+  transform: `perspective(1000px) rotateY(${mouseX.value * 5}deg) rotateX(${-mouseY.value * 5}deg)`
+}))
+
+// 打字机效果
+const startTyping = () => {
+  let i = 0
+  const type = () => {
+    if (i < fullText.length) {
+      typedText.value += fullText.charAt(i)
+      i++
+      setTimeout(type, 50)
+    } else {
+      typingDone.value = true
     }
-    updateCounter()
-  })
-}
-
-// 滚动显示动画
-const initScrollReveal = () => {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('revealed')
-      }
-    })
-  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' })
-  
-  document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el))
+  }
+  setTimeout(type, 800)
 }
 
 // 粒子系统
@@ -555,107 +652,115 @@ const initParticles = () => {
   const ctx = canvas.getContext('2d')
   let particles = []
   let animationId
-  let mouseX = 0
-  let mouseY = 0
   
   const resize = () => {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
   }
   
-  const createParticle = () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: (Math.random() - 0.5) * 0.5,
-    size: Math.random() * 2 + 1,
-    opacity: Math.random() * 0.5 + 0.2,
-    color: Math.random() > 0.5 ? '#00d4ff' : '#0099ff'
-  })
-  
-  // 创建更多粒子
-  for (let i = 0; i < 100; i++) {
-    particles.push(createParticle())
+  class Particle {
+    constructor() {
+      this.reset()
+    }
+    reset() {
+      this.x = Math.random() * canvas.width
+      this.y = Math.random() * canvas.height
+      this.size = Math.random() * 3 + 1
+      this.speedX = (Math.random() - 0.5) * 0.5
+      this.speedY = (Math.random() - 0.5) * 0.5
+      this.opacity = Math.random() * 0.5 + 0.2
+      this.color = Math.random() > 0.5 ? '#00d4ff' : '#0099ff'
+    }
+    update() {
+      this.x += this.speedX
+      this.y += this.speedY
+      if (this.x < 0 || this.x > canvas.width) this.speedX *= -1
+      if (this.y < 0 || this.y > canvas.height) this.speedY *= -1
+    }
+    draw() {
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+      ctx.fillStyle = this.color
+      ctx.globalAlpha = this.opacity
+      ctx.fill()
+    }
   }
   
-  const drawParticles = () => {
+  for (let i = 0; i < 80; i++) {
+    particles.push(new Particle())
+  }
+  
+  const animate = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     
     particles.forEach((p, i) => {
-      // 更新位置
-      p.x += p.vx
-      p.y += p.vy
+      p.update()
+      p.draw()
       
-      // 鼠标交互
-      const dx = mouseX - p.x
-      const dy = mouseY - p.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 150) {
-        p.x -= dx * 0.02
-        p.y -= dy * 0.02
-      }
-      
-      // 边界处理
-      if (p.x < 0 || p.x > canvas.width) p.vx *= -1
-      if (p.y < 0 || p.y > canvas.height) p.vy *= -1
-      
-      // 绘制粒子
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-      ctx.fillStyle = p.color
-      ctx.globalAlpha = p.opacity
-      ctx.fill()
-      
-      // 连线
       particles.slice(i + 1).forEach(p2 => {
-        const dx2 = p.x - p2.x
-        const dy2 = p.y - p2.y
-        const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2)
-        
-        if (dist2 < 120) {
+        const dx = p.x - p2.x
+        const dy = p.y - p2.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 100) {
           ctx.beginPath()
           ctx.moveTo(p.x, p.y)
           ctx.lineTo(p2.x, p2.y)
           ctx.strokeStyle = '#00d4ff'
-          ctx.globalAlpha = (1 - dist2 / 120) * 0.2
+          ctx.globalAlpha = (1 - dist / 100) * 0.15
           ctx.lineWidth = 0.5
           ctx.stroke()
         }
       })
     })
     
-    ctx.globalAlpha = 1
-    animationId = requestAnimationFrame(drawParticles)
-  }
-  
-  const handleMouseMove = (e) => {
-    mouseX = e.clientX
-    mouseY = e.clientY
+    animationId = requestAnimationFrame(animate)
   }
   
   resize()
-  drawParticles()
+  animate()
   window.addEventListener('resize', resize)
-  window.addEventListener('mousemove', handleMouseMove)
   
   return () => {
     cancelAnimationFrame(animationId)
     window.removeEventListener('resize', resize)
-    window.removeEventListener('mousemove', handleMouseMove)
   }
 }
 
 // 滚动处理
 const handleScroll = () => {
-  isScrolled.value = window.scrollY > 50
+  const scrollY = window.scrollY
+  navVisible.value = scrollY > 100
+  
+  // 更新活跃区块
+  const sections = ['hero', 'features', 'capabilities', 'ai', 'viz', 'pricing']
+  for (const id of sections) {
+    const el = document.getElementById(id)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      if (rect.top < 300 && rect.bottom > 300) {
+        activeSection.value = id
+        break
+      }
+    }
+  }
+}
+
+// 鼠标移动
+const handleMouseMove = (e) => {
+  mouseX.value = (e.clientX / window.innerWidth - 0.5) * 2
+  mouseY.value = (e.clientY / window.innerHeight - 0.5) * 2
 }
 
 // 平滑滚动
 const scrollToSection = (id) => {
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
+  const el = document.getElementById(id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' })
   }
+}
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 路由跳转
@@ -663,124 +768,84 @@ const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 
 onMounted(() => {
-  runIntroAnimation()
-  const cleanupParticles = initParticles()
+  startTyping()
+  const cleanup = initParticles()
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('mousemove', handleMouseMove)
   
   onUnmounted(() => {
-    cleanupParticles()
+    cleanup()
     window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('mousemove', handleMouseMove)
   })
 })
 </script>
 
 <style scoped>
-/* 基础样式 */
+/* ===== 基础样式 ===== */
 .landing-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+  background: #0a0a1a;
   color: #fff;
   overflow-x: hidden;
-  opacity: 0;
-  transition: opacity 0.5s ease;
+  position: relative;
 }
 
-.landing-page.loaded {
-  opacity: 1;
-}
-
-/* 开场动画 */
-.intro-overlay {
+/* ===== 动态背景 ===== */
+.bg-layers {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: fadeOut 0.5s ease 2.5s forwards;
-}
-
-@keyframes fadeOut {
-  to { opacity: 0; visibility: hidden; }
-}
-
-.intro-content {
-  text-align: center;
-  animation: scaleIn 0.6s ease;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.intro-logo {
-  margin-bottom: 24px;
-  animation: pulse 2s ease infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-.intro-title {
-  font-size: 48px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #00d4ff, #0099ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 12px;
-}
-
-.intro-subtitle {
-  font-size: 18px;
-  color: #a0a0b0;
-  margin-bottom: 40px;
-}
-
-.intro-loading {
-  width: 300px;
-  margin: 0 auto;
-}
-
-.loading-bar {
-  height: 4px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.loading-progress {
-  height: 100%;
-  background: linear-gradient(90deg, #00d4ff, #0099ff);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.loading-text {
-  font-size: 14px;
-  color: #00d4ff;
-}
-
-/* 粒子画布 */
-.particle-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
-/* 导航栏 */
-.landing-nav {
+.bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 153, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 255, 136, 0.05) 0%, transparent 70%);
+}
+
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+.particle-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.bg-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* ===== 导航栏 ===== */
+.nav-bar {
   position: fixed;
   top: 0;
   left: 0;
@@ -791,83 +856,129 @@ onMounted(() => {
   justify-content: space-between;
   padding: 0 60px;
   z-index: 1000;
-  transition: all 0.3s ease;
+  transform: translateY(-100%);
+  transition: all 0.4s ease;
   background: transparent;
 }
 
-.landing-nav.scrolled {
+.nav-bar.nav-visible {
+  transform: translateY(0);
   background: rgba(10, 10, 26, 0.9);
   backdrop-filter: blur(20px);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.nav-brand {
+.nav-logo {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
 }
 
-.brand-text {
-  font-size: 24px;
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.logo-text {
+  font-size: 22px;
   font-weight: 700;
   background: linear-gradient(135deg, #00d4ff, #0099ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.nav-links {
+.nav-menu {
   display: flex;
-  gap: 40px;
+  gap: 8px;
 }
 
-.nav-links a {
-  color: #c0c0d0;
-  text-decoration: none;
-  font-size: 15px;
-  transition: color 0.3s;
+.nav-menu a {
   position: relative;
+  padding: 8px 16px;
+  color: #a0a0b0;
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.nav-links a:hover {
+.nav-menu a:hover,
+.nav-menu a.active {
   color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
 }
 
-.nav-links a::after {
-  content: '';
+.nav-menu a.active .nav-dot {
+  opacity: 1;
+}
+
+.nav-dot {
   position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #00d4ff, #0099ff);
-  transition: width 0.3s;
-}
-
-.nav-links a:hover::after {
-  width: 100%;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #00d4ff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .nav-actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
-.nav-btn {
+.btn-ghost {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
   color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-.nav-btn-primary {
+.btn-ghost:hover {
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #00d4ff, #0099ff);
   border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-/* 英雄区 */
-.hero-section {
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+}
+
+/* ===== 英雄区 ===== */
+.hero {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 120px 60px 80px;
+  padding: 120px 80px 80px;
   position: relative;
   z-index: 10;
 }
@@ -885,88 +996,144 @@ onMounted(() => {
   background: rgba(0, 212, 255, 0.1);
   border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 13px;
   color: #00d4ff;
   margin-bottom: 24px;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.hero-badge.animate-in {
-  opacity: 1;
-  transform: translateY(0);
+.badge-pulse {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+.hero-badge .el-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-badge span:last-child {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-title {
   font-size: 56px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: 800;
+  line-height: 1.15;
   margin-bottom: 24px;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease 0.1s;
 }
 
-.hero-title.animate-in {
-  opacity: 1;
-  transform: translateY(0);
+.title-line {
+  display: block;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: titleSlide 0.8s ease forwards;
+}
+
+@keyframes titleSlide {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #00d4ff, #0099ff, #00ff88);
-  background-size: 200% 200%;
+  background: linear-gradient(135deg, #00d4ff, #00ff88);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: gradientShift 3s ease infinite;
+  background-size: 200% 200%;
+  animation: gradientMove 3s ease infinite;
 }
 
-@keyframes gradientShift {
+@keyframes gradientMove {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
 
-.hero-description {
+.hero-desc {
   font-size: 18px;
-  color: #a0a0b0;
+  color: #808090;
   line-height: 1.8;
-  margin-bottom: 40px;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease 0.2s;
+  margin-bottom: 32px;
+  min-height: 64px;
 }
 
-.hero-description.animate-in {
-  opacity: 1;
-  transform: translateY(0);
+.typing-text {
+  position: relative;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #00d4ff;
+  margin-left: 4px;
+  animation: cursorBlink 1s step-end infinite;
+  vertical-align: middle;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .hero-stats {
   display: flex;
-  gap: 48px;
+  gap: 24px;
   margin-bottom: 40px;
+}
+
+.stat-card {
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease 0.3s;
+  transform: translateY(20px);
+  animation: statSlide 0.6s ease forwards;
 }
 
-.hero-stats.animate-in {
-  opacity: 1;
-  transform: translateY(0);
+@keyframes statSlide {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.stat-item {
-  text-align: center;
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #fff;
 }
 
 .stat-number {
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 700;
+  color: #fff;
+}
+
+.stat-unit {
+  font-size: 18px;
   color: #00d4ff;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #808090;
   margin-top: 4px;
 }
@@ -974,220 +1141,246 @@ onMounted(() => {
 .hero-cta {
   display: flex;
   gap: 16px;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease 0.4s;
 }
 
-.hero-cta.animate-in {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.cta-primary {
-  background: linear-gradient(135deg, #00d4ff, #0099ff);
+.btn-magic {
+  position: relative;
+  padding: 16px 32px;
+  background: transparent;
   border: none;
-  padding: 16px 32px;
-  font-size: 16px;
-}
-
-.cta-secondary {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
   color: #fff;
-  padding: 16px 32px;
   font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-/* 预览卡片 */
-.hero-preview {
+.btn-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.btn-magic:hover .btn-bg {
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 212, 255, 0.4);
+}
+
+.btn-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-video {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-video:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.play-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 212, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d4ff;
+}
+
+/* ===== 3D场景预览 ===== */
+.hero-visual {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  perspective: 1000px;
+}
+
+.scene-container {
   position: relative;
-  opacity: 0;
-  transform: translateX(50px);
-  transition: all 0.8s ease 0.3s;
+  width: 500px;
+  height: 500px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
 }
 
-.hero-preview.animate-in {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.preview-card {
-  width: 420px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.preview-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.preview-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.preview-dots span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ff5f57;
-}
-
-.preview-dots span:nth-child(2) { background: #ffbd2e; }
-.preview-dots span:nth-child(3) { background: #28c840; }
-
-.preview-title {
-  font-size: 14px;
-  color: #808090;
-}
-
-.chart-mockup {
-  background: rgba(0,0,0,0.3);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.chart-bars {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 120px;
-  margin-bottom: 16px;
-}
-
-.bar {
-  width: 60px;
-  background: linear-gradient(to top, #00d4ff, #0099ff);
-  border-radius: 4px 4px 0 0;
-  position: relative;
-  animation: growBar 1s ease forwards;
-  transform-origin: bottom;
-}
-
-@keyframes growBar {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
-
-.bar.highlight {
-  background: linear-gradient(to top, #00ff88, #00cc66);
-}
-
-.bar span {
+.scene-card {
   position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #808090;
-}
-
-.chart-line {
-  height: 80px;
-}
-
-.ai-insight {
-  display: flex;
-  gap: 12px;
-  background: rgba(0, 212, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.ai-avatar {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #00d4ff, #0099ff);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.ai-message {
-  font-size: 13px;
-  color: #c0c0d0;
-}
-
-.ai-message strong {
-  color: #00ff88;
-}
-
-.ai-suggestion {
-  margin-top: 4px;
-  color: #808090;
-  font-size: 12px;
-}
-
-/* 浮动卡片 */
-.float-card {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.1);
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  font-size: 13px;
-  color: #fff;
   animation: floatCard 4s ease-in-out infinite;
 }
 
-.float-card.card-1 {
-  top: 10%;
-  right: 10%;
-  animation-delay: 0s;
+.scene-card .card-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #fff;
 }
 
-.float-card.card-2 {
-  bottom: 20%;
-  left: -10%;
-  animation-delay: 1s;
-}
-
-.float-card.card-3 {
-  bottom: 10%;
-  right: 0%;
-  animation-delay: 2s;
-}
+.card-cert { animation-delay: 0s; }
+.card-ai { animation-delay: 1s; }
+.card-iso { animation-delay: 2s; }
 
 @keyframes floatCard {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translateY(0) rotateZ(-2deg); }
+  50% { transform: translateY(-15px) rotateZ(2deg); }
 }
 
-/* 功能特性区 */
-.features-section {
-  padding: 120px 60px;
-  position: relative;
-  z-index: 10;
+.floating-island {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 280px;
 }
 
+.island-base {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 60px;
+  background: linear-gradient(180deg, #1a3a4a 0%, #0d1f26 100%);
+  border-radius: 50%;
+  box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
+}
+
+.island-buildings {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bldg {
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.4), rgba(0, 153, 255, 0.2));
+  border: 1px solid rgba(0, 212, 255, 0.5);
+  animation: buildingGlow 3s ease-in-out infinite;
+}
+
+.bldg-1 { width: 40px; height: 80px; left: -60px; animation-delay: 0s; }
+.bldg-2 { width: 50px; height: 100px; left: -10px; animation-delay: 0.5s; }
+.bldg-3 { width: 35px; height: 70px; left: 50px; animation-delay: 1s; }
+
+@keyframes buildingGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+}
+
+.island-trees {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tree {
+  position: absolute;
+  width: 8px;
+  height: 20px;
+  background: #00ff88;
+  border-radius: 4px;
+  animation: treeSway 3s ease-in-out infinite;
+}
+
+.tree:nth-child(1) { left: -80px; animation-delay: 0s; }
+.tree:nth-child(2) { left: 80px; animation-delay: 0.3s; }
+.tree:nth-child(3) { left: -40px; height: 15px; animation-delay: 0.6s; }
+.tree:nth-child(4) { left: 40px; height: 15px; animation-delay: 0.9s; }
+.tree:nth-child(5) { left: 0; height: 12px; animation-delay: 1.2s; }
+
+@keyframes treeSway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+.carbon-rings {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ring {
+  position: absolute;
+  border: 2px solid rgba(0, 255, 136, 0.3);
+  border-radius: 50%;
+  animation: ringExpand 3s ease-out infinite;
+}
+
+.ring:nth-child(1) { width: 60px; height: 60px; left: -30px; top: -30px; }
+.ring:nth-child(2) { width: 100px; height: 100px; left: -50px; top: -50px; }
+.ring:nth-child(3) { width: 140px; height: 140px; left: -70px; top: -70px; }
+
+@keyframes ringExpand {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.orbit-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.orbit-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #00d4ff;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  animation: orbit 8s linear infinite;
+}
+
+.orbit-particle:nth-child(1) { animation-delay: 0s; }
+.orbit-particle:nth-child(2) { animation-delay: 1s; }
+.orbit-particle:nth-child(3) { animation-delay: 2s; }
+.orbit-particle:nth-child(4) { animation-delay: 3s; }
+.orbit-particle:nth-child(5) { animation-delay: 4s; }
+.orbit-particle:nth-child(6) { animation-delay: 5s; }
+.orbit-particle:nth-child(7) { animation-delay: 6s; }
+.orbit-particle:nth-child(8) { animation-delay: 7s; }
+
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(180px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(180px) rotate(-360deg); }
+}
+
+/* ===== 通用区块标题 ===== */
 .section-header {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: 60px;
+  padding-top: 80px;
 }
 
 .section-tag {
@@ -1198,443 +1391,124 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 14px;
   color: #00d4ff;
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-size: 42px;
-  font-weight: 700;
   margin-bottom: 16px;
 }
 
-.section-desc {
+.section-header h2 {
+  font-size: 40px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.section-header p {
   font-size: 18px;
   color: #808090;
   max-width: 600px;
   margin: 0 auto;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
-}
-
-.feature-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  padding: 40px 30px;
-  transition: all 0.4s ease;
+/* ===== 场景化故事区 ===== */
+.story-section {
+  padding: 60px 80px;
   position: relative;
-  overflow: hidden;
+  z-index: 10;
 }
 
-.feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
-  transform: scaleX(0);
-  transition: transform 0.4s ease;
+.story-timeline {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.feature-card:hover::before {
-  transform: scaleX(1);
-}
-
-.feature-card:hover {
-  transform: translateY(-10px);
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.15);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-}
-
-.feature-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+.story-card {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 24px;
-  color: #fff;
-}
-
-.feature-icon.blue {
-  background: linear-gradient(135deg, #00d4ff, #0099ff);
-}
-
-.feature-icon.purple {
-  background: linear-gradient(135deg, #a855f7, #6366f1);
-}
-
-.feature-icon.cyan {
-  background: linear-gradient(135deg, #22d3ee, #06b6d4);
-}
-
-.feature-icon.green {
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-}
-
-.feature-icon.orange {
-  background: linear-gradient(135deg, #fb923c, #f97316);
-}
-
-.feature-icon.pink {
-  background: linear-gradient(135deg, #f472b6, #ec4899);
-}
-
-.feature-title {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.feature-desc {
-  font-size: 14px;
-  color: #808090;
-  line-height: 1.7;
-  margin-bottom: 20px;
-}
-
-.feature-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 20px;
-}
-
-.feature-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #a0a0b0;
-  margin-bottom: 8px;
-}
-
-.feature-list li .el-icon {
-  color: #00d4ff;
-  font-size: 14px;
-}
-
-.feature-hover {
+  gap: 60px;
+  margin-bottom: 100px;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.3s ease;
+  transform: translateY(40px);
+  animation: storySlide 0.8s ease forwards;
 }
 
-.feature-card:hover .feature-hover {
-  opacity: 1;
-  transform: translateY(0);
-}
+.story-card:nth-child(1) { animation-delay: 0.1s; }
+.story-card:nth-child(2) { animation-delay: 0.2s; }
+.story-card:nth-child(3) { animation-delay: 0.3s; }
+.story-card:nth-child(4) { animation-delay: 0.4s; }
 
-/* 3D演示区 */
-.demo-section {
-  padding: 120px 60px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0,212,255,0.03) 50%, transparent 100%);
-}
-
-.demo-container {
-  display: flex;
-  align-items: center;
-  gap: 80px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.demo-content {
-  flex: 1;
-}
-
-.demo-content .section-title {
-  text-align: left;
-}
-
-.demo-content .section-desc {
-  text-align: left;
-  margin: 0 0 40px;
-}
-
-.demo-features {
-  margin-bottom: 40px;
-}
-
-.demo-feature {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.demo-feature .el-icon {
-  font-size: 24px;
-  color: #00d4ff;
-  margin-top: 4px;
-}
-
-.demo-feature h4 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.demo-feature p {
-  font-size: 14px;
-  color: #808090;
-}
-
-.demo-visual {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.demo-3d-scene {
-  width: 500px;
-  height: 400px;
-  position: relative;
-  perspective: 1000px;
-}
-
-.building {
-  position: absolute;
-  background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(0,153,255,0.1));
-  border: 1px solid rgba(0,212,255,0.5);
-  transform-style: preserve-3d;
-  animation: buildingPulse 3s ease-in-out infinite;
-}
-
-.building-1 {
-  width: 80px;
-  height: 200px;
-  left: 100px;
-  top: 100px;
-  animation-delay: 0s;
-}
-
-.building-2 {
-  width: 100px;
-  height: 150px;
-  left: 200px;
-  top: 150px;
-  animation-delay: 0.5s;
-}
-
-.building-3 {
-  width: 60px;
-  height: 180px;
-  left: 320px;
-  top: 120px;
-  animation-delay: 1s;
-}
-
-.building-4 {
-  width: 120px;
-  height: 100px;
-  left: 150px;
-  top: 50px;
-  animation-delay: 1.5s;
-}
-
-@keyframes buildingPulse {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(0,212,255,0.3);
-    transform: translateZ(0);
-  }
-  50% { 
-    box-shadow: 0 0 40px rgba(0,212,255,0.6);
-    transform: translateZ(20px);
-  }
-}
-
-.ground-grid {
-  position: absolute;
-  bottom: 0;
-  left: 50px;
-  right: 50px;
-  height: 100px;
-  background: 
-    linear-gradient(90deg, rgba(0,212,255,0.1) 1px, transparent 1px),
-    linear-gradient(rgba(0,212,255,0.1) 1px, transparent 1px);
-  background-size: 40px 40px;
-  transform: rotateX(60deg);
-  transform-origin: bottom;
-}
-
-.data-particles span {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #00d4ff;
-  border-radius: 50%;
-  animation: particleRise 2s ease-in-out infinite;
-}
-
-@keyframes particleRise {
-  0% { 
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-  100% { 
-    transform: translateY(-100px) scale(0);
-    opacity: 0;
-  }
-}
-
-/* AI顾问区 */
-.ai-section {
-  padding: 120px 60px;
-}
-
-.ai-container {
-  display: flex;
-  align-items: center;
-  gap: 80px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.ai-visual {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ai-avatar-large {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  margin-bottom: 40px;
-}
-
-.ai-pulse {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, rgba(0,212,255,0.3) 0%, transparent 70%);
-  border-radius: 50%;
-  animation: aiPulse 2s ease-in-out infinite;
-}
-
-@keyframes aiPulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 0.8; }
-}
-
-.ai-core {
-  position: absolute;
-  inset: 30px;
-  background: linear-gradient(135deg, #00d4ff, #0099ff);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 60px rgba(0,212,255,0.5);
-}
-
-.ai-chat-preview {
-  width: 100%;
-  max-width: 400px;
-}
-
-.chat-bubble {
-  padding: 16px 20px;
-  border-radius: 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  line-height: 1.6;
-  animation: messageSlide 0.5s ease;
-}
-
-@keyframes messageSlide {
-  from { 
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to { 
+@keyframes storySlide {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.chat-bubble.user {
-  background: rgba(0,212,255,0.1);
-  border: 1px solid rgba(0,212,255,0.3);
-  margin-left: 20%;
+.story-left .story-visual { order: 1; }
+.story-left .story-content { order: 2; }
+.story-right .story-visual { order: 2; }
+.story-right .story-content { order: 1; }
+
+.story-visual {
+  flex: 1;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
 }
 
-.chat-bubble.ai {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  margin-right: 20%;
-}
-
-.chat-bubble.ai ol {
-  margin: 12px 0;
-  padding-left: 20px;
-}
-
-.chat-bubble.ai li {
-  margin-bottom: 8px;
-  color: #c0c0d0;
-}
-
-.chat-bubble.ai strong {
-  color: #00ff88;
-}
-
-.ai-content {
+.story-content {
   flex: 1;
 }
 
-.ai-content .section-title,
-.ai-content .section-desc {
-  text-align: left;
+.story-step {
+  display: inline-block;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
-.ai-content .section-desc {
-  margin: 0 0 40px;
+.story-content h3 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
-.ai-capabilities {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+.story-content > p {
+  font-size: 16px;
+  color: #a0a0b0;
+  line-height: 1.7;
+  margin-bottom: 20px;
 }
 
-.capability {
+.story-features {
+  list-style: none;
+  padding: 0;
+}
+
+.story-features li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  gap: 10px;
+  font-size: 14px;
+  color: #c0c0d0;
+  margin-bottom: 10px;
 }
 
-.capability:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(0,212,255,0.3);
-  transform: translateX(10px);
+.story-features li .el-icon {
+  color: #00ff88;
 }
 
-.capability .el-icon {
-  font-size: 24px;
-  color: #00d4ff;
+/* ===== 3D翻转卡片 ===== */
+.features-grid-section {
+  padding: 60px 80px;
+  position: relative;
+  z-index: 10;
 }
 
-/* 价格方案 */
-.pricing-section {
-  padding: 120px 60px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0,212,255,0.02) 50%, transparent 100%);
-}
-
-.pricing-grid {
+.features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 30px;
@@ -1642,23 +1516,478 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.feature-flip-card {
+  height: 320px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-front,
+.flip-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 20px;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.flip-front {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: center;
+  text-align: center;
+}
+
+.flip-back {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 153, 255, 0.05));
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  transform: rotateY(180deg);
+}
+
+.flip-front.blue { --accent: #00d4ff; }
+.flip-front.purple { --accent: #a855f7; }
+.flip-front.cyan { --accent: #22d3ee; }
+.flip-front.green { --accent: #4ade80; }
+.flip-front.orange { --accent: #fb923c; }
+.flip-front.pink { --accent: #f472b6; }
+
+.feature-icon-wrap {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent), transparent);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  color: var(--accent);
+}
+
+.flip-front h3 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.flip-front > p {
+  font-size: 14px;
+  color: #808090;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.flip-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: auto;
+}
+
+.flip-back h4 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.flip-back > p {
+  font-size: 14px;
+  color: #a0a0b0;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.flip-back ul {
+  list-style: none;
+  padding: 0;
+  margin-top: auto;
+}
+
+.flip-back li {
+  font-size: 13px;
+  color: #c0c0d0;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.flip-back li:last-child {
+  border-bottom: none;
+}
+
+/* ===== AI顾问区 ===== */
+.ai-demo-section {
+  padding: 60px 80px;
+  position: relative;
+  z-index: 10;
+}
+
+.ai-container {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ai-intro {
+  flex: 1;
+}
+
+.ai-intro h2 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 16px 0;
+}
+
+.ai-intro > p {
+  font-size: 16px;
+  color: #808090;
+  line-height: 1.7;
+}
+
+.ai-chat-demo {
+  flex: 1;
+}
+
+.chat-window {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ai-avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-pulse {
+  position: absolute;
+  inset: -4px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50%;
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+
+@keyframes avatarPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.5; }
+}
+
+.ai-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-name {
+  font-weight: 600;
+}
+
+.ai-status {
+  font-size: 12px;
+  color: #808090;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: statusBlink 2s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.chat-messages {
+  padding: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.message {
+  margin-bottom: 16px;
+  animation: messageSlide 0.4s ease;
+}
+
+@keyframes messageSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.message.user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.message.ai .message-content {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.message.user .message-content {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.message-content strong {
+  color: #00ff88;
+}
+
+.message-time {
+  font-size: 11px;
+  color: #505060;
+  margin-top: 4px;
+}
+
+.chat-input {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.chat-input input::placeholder {
+  color: #505060;
+}
+
+.chat-input button {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.capability-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 13px;
+  color: #a0a0b0;
+}
+
+.capability-tag .el-icon {
+  color: #00ff88;
+  font-size: 12px;
+}
+
+/* ===== 可视化区 ===== */
+.viz-section {
+  padding: 60px 80px;
+  position: relative;
+  z-index: 10;
+}
+
+.viz-container {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.viz-content {
+  flex: 1;
+}
+
+.viz-content h2 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 16px 0;
+}
+
+.viz-content > p {
+  font-size: 16px;
+  color: #808090;
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+
+.viz-features {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.viz-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.viz-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.viz-icon.blue { background: rgba(0, 212, 255, 0.1); color: #00d4ff; }
+.viz-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.viz-icon.cyan { background: rgba(34, 211, 238, 0.1); color: #22d3ee; }
+.viz-icon.green { background: rgba(74, 222, 128, 0.1); color: #4ade80; }
+
+.viz-text h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.viz-text p {
+  font-size: 14px;
+  color: #808090;
+}
+
+.viz-showcase {
+  flex: 1;
+}
+
+.viz-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.viz-tabs button {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #808090;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.viz-tabs button.active,
+.viz-tabs button:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+
+.viz-display {
+  height: 350px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.viz-scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* ===== 定价区 ===== */
+.pricing-section {
+  padding: 60px 80px;
+  position: relative;
+  z-index: 10;
+}
+
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
 .pricing-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
   padding: 40px 30px;
   position: relative;
-  transition: all 0.4s ease;
+  transition: all 0.4s;
 }
 
 .pricing-card:hover {
   transform: translateY(-10px);
-  background: rgba(255,255,255,0.05);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .pricing-card.popular {
-  background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,153,255,0.05));
-  border-color: rgba(0,212,255,0.3);
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 153, 255, 0.05));
+  border-color: rgba(0, 212, 255, 0.3);
   transform: scale(1.05);
 }
 
@@ -1666,7 +1995,8 @@ onMounted(() => {
   transform: scale(1.05) translateY(-10px);
 }
 
-.popular-badge {
+.pricing-card.popular::before {
+  content: '最受欢迎';
   position: absolute;
   top: -12px;
   left: 50%;
@@ -1678,30 +2008,30 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.pricing-header {
+.plan-header {
   text-align: center;
   margin-bottom: 30px;
 }
 
-.pricing-header h3 {
-  font-size: 24px;
+.plan-header h3 {
+  font-size: 22px;
   font-weight: 600;
   margin-bottom: 16px;
 }
 
-.pricing-price {
+.plan-price {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 4px;
 }
 
-.pricing-price .currency {
-  font-size: 24px;
+.currency {
+  font-size: 20px;
   color: #808090;
 }
 
-.pricing-price .amount {
+.amount {
   font-size: 48px;
   font-weight: 700;
   background: linear-gradient(135deg, #00d4ff, #0099ff);
@@ -1709,49 +2039,68 @@ onMounted(() => {
   -webkit-text-fill-color: transparent;
 }
 
-.pricing-price .period {
+.period {
   font-size: 16px;
   color: #808090;
 }
 
-.pricing-features {
+.plan-features {
   list-style: none;
   padding: 0;
   margin: 0 0 30px;
 }
 
-.pricing-features li {
+.plan-features li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 12px 0;
   font-size: 14px;
   color: #c0c0d0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.pricing-features li.disabled {
+.plan-features li.disabled {
   color: #505060;
 }
 
-.pricing-features li .el-icon {
+.plan-features li .el-icon {
   font-size: 16px;
 }
 
-.pricing-features li:not(.disabled) .el-icon {
+.plan-features li:not(.disabled) .el-icon {
   color: #00ff88;
 }
 
-.pricing-btn {
+.pricing-card button {
   width: 100%;
   padding: 14px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-/* CTA区域 */
-.cta-section {
-  padding: 120px 60px;
+/* ===== CTA区 ===== */
+.final-cta {
+  padding: 120px 80px;
+  position: relative;
+  z-index: 10;
   text-align: center;
+  overflow: hidden;
+}
+
+.cta-particles {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(0, 255, 136, 0.1) 0%, transparent 50%);
+}
+
+.cta-content {
+  position: relative;
+  z-index: 1;
 }
 
 .cta-content h2 {
@@ -1760,7 +2109,7 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.cta-content p {
+.cta-content > p {
   font-size: 18px;
   color: #808090;
   margin-bottom: 40px;
@@ -1773,13 +2122,18 @@ onMounted(() => {
   margin-bottom: 40px;
 }
 
-.trust-badges {
+.btn-large {
+  padding: 18px 36px;
+  font-size: 17px;
+}
+
+.trust-signals {
   display: flex;
   justify-content: center;
   gap: 40px;
 }
 
-.badge {
+.trust-signals span {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1787,14 +2141,16 @@ onMounted(() => {
   color: #808090;
 }
 
-.badge .el-icon {
+.trust-signals .el-icon {
   color: #00d4ff;
 }
 
-/* 页脚 */
+/* ===== 页脚 ===== */
 .landing-footer {
-  padding: 60px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 60px 80px 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 10;
 }
 
 .footer-content {
@@ -1806,12 +2162,18 @@ onMounted(() => {
 
 .footer-brand {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
 }
 
-.footer-brand span {
-  font-size: 24px;
+.footer-brand .logo-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.brand-name {
+  display: block;
+  font-size: 22px;
   font-weight: 700;
   background: linear-gradient(135deg, #00d4ff, #0099ff);
   -webkit-background-clip: text;
@@ -1821,6 +2183,7 @@ onMounted(() => {
 .footer-brand p {
   font-size: 14px;
   color: #808090;
+  margin-top: 4px;
 }
 
 .footer-links {
@@ -1828,51 +2191,97 @@ onMounted(() => {
   gap: 80px;
 }
 
-.footer-column h4 {
-  font-size: 16px;
+.link-group h4 {
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.footer-column a {
+.link-group a {
   display: block;
   font-size: 14px;
   color: #808090;
   text-decoration: none;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   transition: color 0.3s;
 }
 
-.footer-column a:hover {
+.link-group a:hover {
   color: #00d4ff;
 }
 
 .footer-bottom {
   text-align: center;
-  padding-top: 40px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .footer-bottom p {
-  font-size: 14px;
+  font-size: 13px;
   color: #505060;
 }
 
-/* 滚动显示动画 */
-.scroll-reveal {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: all 0.8s ease;
+/* ===== 视频弹窗 ===== */
+.video-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
 }
 
-.scroll-reveal.revealed {
-  opacity: 1;
-  transform: translateY(0);
+@keyframes fadeIn {
+  from { opacity: 0; }
 }
 
-/* 响应式 */
+.video-container {
+  position: relative;
+  width: 80%;
+  max-width: 900px;
+  aspect-ratio: 16/9;
+  background: #1a1a2e;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #808090;
+}
+
+.video-placeholder p {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+/* ===== 响应式 ===== */
 @media (max-width: 1200px) {
-  .hero-section {
+  .hero {
     flex-direction: column;
     text-align: center;
     padding: 100px 40px 60px;
@@ -1890,34 +2299,50 @@ onMounted(() => {
     justify-content: center;
   }
   
-  .hero-preview {
+  .hero-visual {
     margin-top: 60px;
   }
   
-  .features-grid,
-  .pricing-grid {
+  .features-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .demo-container,
+  .pricing-cards {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+  
+  .pricing-card.popular {
+    transform: none;
+  }
+  
+  .pricing-card.popular:hover {
+    transform: translateY(-10px);
+  }
+  
+  .story-card,
+  .viz-container,
   .ai-container {
     flex-direction: column;
   }
   
-  .demo-content .section-title,
-  .demo-content .section-desc,
-  .ai-content .section-title,
-  .ai-content .section-desc {
-    text-align: center;
+  .story-left .story-visual,
+  .story-right .story-visual {
+    order: 1;
+  }
+  
+  .story-left .story-content,
+  .story-right .story-content {
+    order: 2;
   }
 }
 
 @media (max-width: 768px) {
-  .landing-nav {
+  .nav-bar {
     padding: 0 20px;
   }
   
-  .nav-links {
+  .nav-menu {
     display: none;
   }
   
@@ -1925,16 +2350,15 @@ onMounted(() => {
     font-size: 36px;
   }
   
-  .features-grid,
-  .pricing-grid {
+  .features-grid {
     grid-template-columns: 1fr;
   }
   
-  .pricing-card.popular {
-    transform: none;
+  .section-header h2 {
+    font-size: 28px;
   }
   
-  .trust-badges {
+  .trust-signals {
     flex-direction: column;
     gap: 16px;
   }
@@ -1946,7 +2370,7 @@ onMounted(() => {
   
   .footer-links {
     flex-direction: column;
-    gap: 40px;
+    gap: 30px;
   }
 }
 </style>
