@@ -755,6 +755,9 @@ const saveBuilding = () => {
     area: currentBuilding.value.area,
     x: drawStart.value.x,
     y: drawStart.value.y,
+    // 记录标注时的图片实际显示尺寸，用于3D坐标转换
+    imgWidth: annotationImg.value?.clientWidth || 1000,
+    imgHeight: annotationImg.value?.clientHeight || 800,
     width: drawSize.value.width,
     height: drawSize.value.height,
     // 使用真实API数据或模拟
@@ -1051,8 +1054,10 @@ const createBuildings = () => {
   
   buildings.value.forEach((building, index) => {
     // 根据图片坐标映射到3D空间
-    const imgWidth = 1000
-    const imgHeight = 800
+    // 从第一个建筑数据推断标注时的图片尺寸（如果没有则使用默认值）
+const firstBuilding = buildings.value[0] || {}
+const imgWidth = firstBuilding.imgWidth || 1000
+const imgHeight = firstBuilding.imgHeight || 800
     const sceneSize = 160
     
     // 防御性检查：确保坐标有效
