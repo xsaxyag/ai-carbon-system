@@ -14,8 +14,8 @@
               <div class="card-header">
                 <span>📤 地图导入</span>
               <el-radio-group v-model="importMode" size="small" style="margin-left:12px">
-                  <el-radio-button value="plan">平面图</el-radio-button>
-                  <el-radio-button value="heightmap">高度图</el-radio-button>
+                  <el-radio-button label="plan">平面图</el-radio-button>
+                  <el-radio-button label="heightmap">高度图</el-radio-button>
                 </el-radio-group>
               </div>
             </template>
@@ -60,9 +60,9 @@
               </el-form-item>
               <el-form-item label="可视化模式">
                 <el-radio-group v-model="visualizationMode" size="small">
-                  <el-radio-button value="heatmap">热力图</el-radio-button>
-                  <el-radio-button value="height">高度</el-radio-button>
-                  <el-radio-button value="color">颜色</el-radio-button>
+                  <el-radio-button label="heatmap">热力图</el-radio-button>
+                  <el-radio-button label="height">高度</el-radio-button>
+                  <el-radio-button label="color">颜色</el-radio-button>
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="特效选项">
