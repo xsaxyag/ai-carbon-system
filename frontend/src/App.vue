@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-container class="app-container">
     <!-- 侧边栏 -->
     <el-aside width="200px">
@@ -13,7 +13,7 @@
         text-color="#fff"
         active-text-color="#409eff"
       >
-        <el-menu-item index="/">
+        <el-menu-item index="/dashboard">
           <el-icon><DataBoard /></el-icon>
           <span>Dashboard</span>
         </el-menu-item>

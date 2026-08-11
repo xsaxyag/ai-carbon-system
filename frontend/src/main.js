@@ -19,12 +19,14 @@ import CarbonWizard from './views/CarbonWizard.vue'
 import CompanyCompare from './views/CompanyCompare.vue'
 import PriceAlert from './views/PriceAlert.vue'
 import Login from './views/Login.vue'
+import LandingPage from './views/LandingPage.vue'
 import { isAuthenticated } from './utils/auth'
 
 // 路由配置
 const routes = [
   { path: '/login', name: 'Login', component: Login, meta: { public: true } },
-  { path: '/', name: 'Dashboard', component: Dashboard },
+  { path: '/', name: 'LandingPage', component: LandingPage, meta: { public: true } },
+  { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/carbon', name: 'CarbonEntry', component: CarbonEntry },
   { path: '/ocr', name: 'OCRUpload', component: OCRUpload },
   { path: '/company', name: 'CompanyManage', component: CompanyManage },

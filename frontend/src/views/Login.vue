@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login-container">
     <!-- 动态背景气泡 -->
     <div class="bg-bubbles">
@@ -173,7 +173,7 @@ async function handleLogin() {
       localStorage.setItem('token', token)
       if (user) localStorage.setItem('user', JSON.stringify(user))
       ElMessage.success('登录成功')
-      router.push('/')
+      router.push('/dashboard')
     } else {
       ElMessage.error(data.detail || '登录失败')
     }
@@ -207,7 +207,7 @@ async function handleRegister() {
       localStorage.setItem('token', token)
       if (user) localStorage.setItem('user', JSON.stringify(user))
       ElMessage.success('注册成功')
-      router.push('/')
+      router.push('/dashboard')
     } else {
       ElMessage.error(data.detail || '注册失败')
     }
