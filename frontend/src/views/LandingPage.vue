@@ -438,7 +438,7 @@ const stories = [
     desc: '小明上传了电费单、燃气账单，OCR 智能识别自动提取关键数据，无需手动录入。',
     features: ['多格式票据支持', '99%+ 识别准确率', '自动数据校验'],
     theme: 'ocr',
-    screenshot: '/screenshots/step1-ocr.png',
+    screenshot: './screenshots/step1-ocr.png',
     animElements: [
       { class: 'doc doc-1', style: {} },
       { class: 'doc doc-2', style: {} },
@@ -450,7 +450,7 @@ const stories = [
     desc: '系统自动匹配排放因子，完成 Scope 1/2/3 全范围核算，生成符合 GB/T 32150 标准的报告。',
     features: ['生态环境部因子库', '三范围全覆盖', '标准合规报告'],
     theme: 'calc',
-    screenshot: '/screenshots/step2-report.png',
+    screenshot: './screenshots/step2-report.png',
     animElements: [
       { class: 'calc-screen', style: {} },
       { class: 'data-bar', style: {} },
@@ -462,7 +462,7 @@ const stories = [
     desc: '通过园区3D地图，小明直观看到各建筑碳排放分布，快速定位高排放区域。',
     features: ['园区地图3D化', '实时数据叠加', '多维度钻取分析'],
     theme: 'viz',
-    screenshot: '/screenshots/step3-3d.png',
+    screenshot: './screenshots/step3-3d.png',
     animElements: [
       { class: 'building-3d', style: {} },
       { class: 'heatmap', style: {} },
@@ -474,7 +474,7 @@ const stories = [
     desc: 'AI 分析数据后，为小明提供了具体的减排方案，预计可降低 20% 碳排放。',
     features: ['自然语言交互', '个性化方案', '效果预测评估'],
     theme: 'ai',
-    screenshot: '/screenshots/step4-ai.png',
+    screenshot: './screenshots/step4-ai.png',
     animElements: [
       { class: 'ai-orb', style: {} },
       { class: 'chat-bubble', style: {} },
@@ -564,7 +564,7 @@ const vizTabs = [
   {
     label: '园区3D',
     scene: 'park',
-    screenshot: '/screenshots/viz-park.png',
+    screenshot: './screenshots/viz-park.png',
     elements: [
       { class: 'bldg-main', style: {} },
       { class: 'bldg-sub', style: {} },
@@ -574,7 +574,7 @@ const vizTabs = [
   {
     label: '数字孪生',
     scene: 'factory',
-    screenshot: '/screenshots/viz-factory.png',
+    screenshot: './screenshots/viz-factory.png',
     elements: [
       { class: 'factory-line', style: {} },
       { class: 'machine', style: {} },
@@ -584,7 +584,7 @@ const vizTabs = [
   {
     label: '供应链',
     scene: 'chain',
-    screenshot: '/screenshots/viz-chain.png',
+    screenshot: './screenshots/viz-chain.png',
     elements: [
       { class: 'node', style: {} },
       { class: 'connection', style: {} },
