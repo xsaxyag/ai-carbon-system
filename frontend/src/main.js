@@ -45,7 +45,9 @@ const routes = [
   { path: '/digital-twin', name: 'DigitalTwinFactory', component: () => import('./views/DigitalTwinFactory.vue') },
   { path: '/supply-chain', name: 'SupplyChainGraph', component: () => import('./views/SupplyChainGraph.vue') },
   { path: '/energy-synergy', name: 'EnergySynergy', component: () => import('./views/EnergySynergy.vue') },
-  { path: '/site-map-3d', name: 'SiteMap3D', component: () => import('./views/SiteMap3D.vue') }
+  { path: '/site-map-3d', name: 'SiteMap3D', component: () => import('./views/SiteMap3D.vue') },
+  // 静态内容页面（Footer 链接）
+  { path: '/static/:slug', name: 'StaticPage', component: () => import('./views/StaticPage.vue'), meta: { public: true } }
 ]
 
 const router = createRouter({

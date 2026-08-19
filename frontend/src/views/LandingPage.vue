@@ -344,7 +344,9 @@
         <div class="footer-links">
           <div class="link-group" v-for="group in footerLinks" :key="group.title">
             <h4>{{ group.title }}</h4>
-            <a v-for="link in group.links" :key="link" href="#">{{ link }}</a>
+            <router-link v-for="link in group.links" :key="link.slug" :to="`/static/${link.slug}`" class="footer-link">
+              {{ link.label }}
+            </router-link>
           </div>
         </div>
       </div>
@@ -641,10 +643,29 @@ const pricingPlans = [
 
 // 页脚链接
 const footerLinks = [
-  { title: '产品', links: ['功能特性', '定价方案', '更新日志', '路线图'] },
-  { title: '资源', links: ['帮助中心', 'API文档', '使用指南', '案例研究'] },
-  { title: '公司', links: ['关于我们', '联系我们', '加入我们', '合作伙伴'] },
-  { title: '法律', links: ['隐私政策', '服务条款', '安全合规'] }
+  { title: '产品', links: [
+    { label: '功能特性', slug: 'features' },
+    { label: '定价方案', slug: 'pricing' },
+    { label: '更新日志', slug: 'changelog' },
+    { label: '路线图', slug: 'roadmap' }
+  ]},
+  { title: '资源', links: [
+    { label: '帮助中心', slug: 'help' },
+    { label: 'API文档', slug: 'api' },
+    { label: '使用指南', slug: 'guide' },
+    { label: '案例研究', slug: 'cases' }
+  ]},
+  { title: '公司', links: [
+    { label: '关于我们', slug: 'about' },
+    { label: '联系我们', slug: 'contact' },
+    { label: '加入我们', slug: 'join' },
+    { label: '合作伙伴', slug: 'partners' }
+  ]},
+  { title: '法律', links: [
+    { label: '隐私政策', slug: 'privacy' },
+    { label: '服务条款', slug: 'terms' },
+    { label: '安全合规', slug: 'compliance' }
+  ]}
 ]
 
 // 3D场景鼠标跟随
@@ -2255,8 +2276,19 @@ onMounted(() => {
   transition: color 0.3s;
 }
 
-.link-group a:hover {
+.link-group a:hover,
+.link-group .footer-link:hover {
   color: #00d4ff;
+}
+
+.footer-link {
+  display: block;
+  font-size: 14px;
+  color: #808090;
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: color 0.3s;
+  cursor: pointer;
 }
 
 .footer-bottom {
